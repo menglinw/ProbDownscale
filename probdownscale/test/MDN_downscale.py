@@ -4,9 +4,10 @@ import netCDF4 as nc
 import probdownscale.data_generate.data_processing as data_processing
 import tensorflow as tf
 import tensorflow.keras as keras
-from keras import layers
-from keras.layers import Input, BatchNormalization, Activation, LeakyReLU, Dropout, LSTM, Reshape
-from keras.models import Model
+from tensorflow.keras import layers
+from tensorflow.keras.layers import Input, BatchNormalization, Activation, LeakyReLU, Dropout, LSTM, Reshape
+from tensorflow.keras.models import Model
+from tensorflow_probability import distributions as tfd
 import matplotlib.pyplot as plt
 import geopandas as gpd
 import sys
@@ -386,8 +387,38 @@ class country_model():
             x = unit_layer(16, x)
             return x
 
+        def nnelu(input):
+            """ Computes the Non-Negative Exponential Linear Unit
+            """
+            return tf.add(tf.constant(1, dtype=tf.float32), tf.nn.elu(input))
+
+        components = 100
+        no_parameters = 3
+        def slice_parameter_vectors(parameter_vector):
+            """ Returns an unpacked list of paramter vectors.
+            """
+            return [parameter_vector[:, i * components:(i + 1) * components] for i in range(no_parameters)]
+
+        def gnll_loss(y, parameter_vector):
+            """ Computes the mean negative log-likelihood loss of y given the mixture parameters.
+            """
+            alpha, mu, sigma = slice_parameter_vectors(parameter_vector)  # Unpack parameter vectors
+
+            gm = tfd.MixtureSameFamily(
+                mixture_distribution=tfd.Categorical(probs=alpha),
+                components_distribution=tfd.Normal(
+                    loc=mu,
+                    scale=sigma))
+
+            log_likelihood = gm.log_prob(tf.transpose(y))  # Evaluate log-probability of y
+
+            return -tf.reduce_mean(log_likelihood, axis=-1)
+
+        tf.keras.utils.get_custom_objects().update({'nnelu': Activation(nnelu)})
+
         input1 = Input(shape=(1, self.n_lag))  # input of AOD
-        input2 = Input(shape=(4 + 1,)) if self.with_merra else Input(
+        input2 = Input(shape=(4 + 1,
+                              )) if self.with_merra else Input(
             shape=(4 + self.n_lag))  # input of lat, lon, day, elev, merra AOD
 
         if self.with_trans:
@@ -416,9 +447,13 @@ class country_model():
         X = unit_layer(16, X)
         X = unit_layer(8, X)
         # X = layers.Dense(1, activation=lambda x: keras.activations.relu(x, max_value=6))(X)
-        X = layers.Dense(1, activation='relu')(X)
-        model = Model([input1, input2], X)
-        model.compile(optimizer='adam', loss="mean_squared_error")
+        # X = layers.Dense(1, activation='relu')(X)
+        alphas = layers.Dense(components, activation="softmax", name="alphas")(X)
+        mus = layers.Dense(components, name="mus")(X)
+        sigmas = layers.Dense(components, activation="nnelu", name="sigmas")(X)
+        output = layers.Concatenate()([alphas, mus, sigmas])
+        model = Model([input1, input2], output)
+        model.compile(optimizer='adam', loss=gnll_loss)
         return model
 
     def _evaluate(self, pred_data, true_data):
