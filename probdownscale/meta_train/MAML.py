@@ -4,17 +4,30 @@ import tensorflow as tf
 import numpy as np
 
 
-class MAML:
-    def __init__(self, target_model, target_loss):
+class MetaSGD:
+    def __init__(self, target_model, target_loss, meta_step, meta_optimizer, inner_step, inner_optimizer, batch_size,
+                 data):
         '''
-        :param target_model: target model
-        :param loss: the loss of target model
+        :param target_model:
+        :param target_loss:
+        :param meta_step:
+        :param meta_optimizer:
+        :param inner_step:
+        :param inner_optimizer:
+        :param batch_size:
+        :param data:
         '''
+
         self.meta_model = target_model
         self.loss = target_loss
         self.alpha = tf.Variable(tf.random_normal_initializer(shape=target_model.get_weights().shape,
-
                                                               dtype=tf.float64))
+        self.meta_step = meta_step
+        self.meta_optimizer = meta_optimizer
+        self.inner_step = inner_step
+        self.inner_optimizer = inner_optimizer
+        self.batch_size = batch_size
+        self.data = data
 
     def train_on_batch(self, train_data, inner_optimizer, inner_step, outer_optimizer=None):
         """
