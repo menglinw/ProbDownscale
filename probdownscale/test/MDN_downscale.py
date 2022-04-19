@@ -1,11 +1,11 @@
 import time
 import numpy as np
 import netCDF4 as nc
-import probdownscale.data_generate.data_processing as data_processing
+import probdownscale.utils.data_processing as data_processing
 import tensorflow as tf
 import tensorflow.keras as keras
 from tensorflow.keras import layers
-from tensorflow.keras.layers import Input, BatchNormalization, Activation, LeakyReLU, Dropout, LSTM, Reshape
+from tensorflow.keras.layers import Input, BatchNormalization, Activation, LeakyReLU, Dropout, LSTM
 from tensorflow.keras.models import Model
 from tensorflow_probability import distributions as tfd
 import matplotlib.pyplot as plt

@@ -45,7 +45,7 @@ class MetaSGD:
         # save the weight as initialization
         meta_weights = self.meta_model.get_weights()
         alpha = self.alpha
-
+        inner_optimizer.learning_rate.assign(1)
         meta_train_X, meta_train_Y, meta_test_X, meta_test_Y = train_data
         for train_X, train_Y in zip(meta_train_X, meta_train_Y):
 
@@ -84,6 +84,7 @@ class MetaSGD:
         self.meta_model.set_weights(meta_weights)
         if outer_optimizer:
             grads = tape.gradient(mean_loss, [self.meta_model.trainable_variables, alpha])
+            outer_optimizer.learning_rate.assign(0.01)
             outer_optimizer.apply_gradients(zip(grads[0], self.meta_model.trainable_variables))
             outer_optimizer.apply_gradients(zip(grads[1], alpha))
             self.alpha = alpha
