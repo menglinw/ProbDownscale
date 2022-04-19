@@ -17,6 +17,8 @@
             * dim: (task, test_X)
         * test_Y
             * dim: (task, test_Y)
+        * location_list
+            * a list of location for each task [[lat, lon], ...]
 
 * ModelGenerator
     * output: a model without compiling
