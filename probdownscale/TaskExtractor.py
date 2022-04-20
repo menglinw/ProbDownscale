@@ -11,7 +11,6 @@ import sys
 import os
 import copy
 import pandas as pd
-import h5py
 
 class TaskExtractor():
     def __init__(self, data, n_task, test_proportion):
