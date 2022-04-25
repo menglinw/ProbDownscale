@@ -1,5 +1,4 @@
 import numpy as np
-import netCDF4 as nc
 import os
 import sys
 module_path = os.path.abspath(os.path.join('..'))
@@ -16,7 +15,7 @@ from random import sample
 
 
 class TaskExtractor():
-    def __init__(self, data, lats_lons, task_dim, n_task, test_proportion, n_lag):
+    def __init__(self, data, lats_lons, task_dim, test_proportion, n_lag):
         # initialize all arguments
         # high and low resolution data
         self.h_data, self.l_data = data
@@ -29,8 +28,6 @@ class TaskExtractor():
             self.task_dim = task_dim
         else:
             raise ValueError
-        # number of task per meta batch
-        self.n_task = n_task
         # test proportion within each data
         self.test_proportion = test_proportion
         # number of lagging days
@@ -55,10 +52,12 @@ class TaskExtractor():
             self.seen_location[sample_index] += 1
         return sample_index
 
-    def _get_random_task(self, record=True):
-        # get random topleft index
-        topleft_location = self._get_random_topleft_index(record=record)
-
+    def _get_random_task(self, is_random=True, record=True, lat_lon=None):
+        if is_random:
+            # get random topleft index
+            topleft_location = self._get_random_topleft_index(record=record)
+        else:
+            topleft_location = lat_lon
         # get high resolution data
         lat_index = list(self.h_lats).index(topleft_location[0])
         lon_index = list(self.h_lons).index(topleft_location[1])
@@ -86,8 +85,7 @@ class TaskExtractor():
 
         train_x_1, train_x_2, train_x_3 = self._get_inputX(train_y_day, h_data, l_data)
         test_x_1, test_x_2, test_x_3 = self._get_inputX(test_y_day, h_data, l_data)
-        return [train_x_1, train_x_2, train_x_3], train_y, [test_x_1, test_x_2, test_x_3], test_y
-
+        return [train_x_1, train_x_2, train_x_3], train_y, [test_x_1, test_x_2, test_x_3], test_y, topleft_location
 
     def _get_inputX(self, y_index, h_data, l_data):
         # input 1: HR temporal input
@@ -99,6 +97,22 @@ class TaskExtractor():
         train_x_2 = l_data[y_index]
         train_x_3 = np.remainder(np.array(y_index), 365)
         return train_x_1, train_x_2, train_x_3
+
+    def get_random_tasks(self, n_task, record=True):
+        train_x, train_y, test_x, test_y, locations= [], [], [], [], []
+        for _ in range(n_task):
+            x1, y1, x2, y2, location = self._get_random_task(record=record)
+            train_x.append(x1)
+            train_y.append(y1)
+            test_x.append(x2)
+            test_y.append(y2)
+            locations.append(location)
+        return train_x, train_y, test_x, test_y, locations
+
+    def get_order_tasks(self):
+        # TODO do this later when downscaling
+        pass
+
 
 
 

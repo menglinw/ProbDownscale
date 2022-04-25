@@ -2,11 +2,11 @@
 * TaskExtractor
     * Role Description
         * For meta training
-            * extract several tasks randomly when calling **meta_next** method
+            * extract several tasks randomly when calling **get_random_tasks** method
             * each task including training and testing data
             * training and testing data should be flattened and ready for training
         * For downscaling
-            * extract one task sequentially when calling **ds_next** method
+            * extract one task sequentially when calling **get_order_tasks** method
             * each task including training and testing data (how to split?)
             * data should be flattened and ready for training
     * Input
