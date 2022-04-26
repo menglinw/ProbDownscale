@@ -34,7 +34,7 @@ class MetaSGD:
         self.inner_optimizer = inner_optimizer
         self.task_extractor = task_extractor
 
-    def _train_on_batch(self, batch_size, inner_rate_f=None, meta_rate_f=None, use_test_for_meta=True):
+    def _train_on_batch(self, batch_size=None, inner_rate_f=None, meta_rate_f=None, use_test_for_meta=True, locations=None):
         """
 
         :param train_data: training data for one batch, including meta_train_X, meta_train_Y, meta_test_X, meta_test_Y
@@ -53,7 +53,10 @@ class MetaSGD:
             inner_rate = self.inner_optimizer.learning_rate.numpy()
             self.inner_optimizer.learning_rate.assign(inner_rate_f(inner_rate, batch_size, self.inner_step))
         #self.inner_optimizer.learning_rate.assign(1)
-        meta_train_X, meta_train_Y, meta_test_X, meta_test_Y, locations = self.task_extractor.get_random_tasks(batch_size)
+        if locations:
+            meta_train_X, meta_train_Y, meta_test_X, meta_test_Y, locations = self.task_extractor.get_random_tasks(locations=locations)
+        else:
+            meta_train_X, meta_train_Y, meta_test_X, meta_test_Y, locations = self.task_extractor.get_random_tasks(batch_size)
         for train_X, train_Y in zip(meta_train_X, meta_train_Y):
 
             # load the initialization
@@ -65,7 +68,7 @@ class MetaSGD:
                     loss = self.loss(train_Y, Y_hat)
                     loss = tf.reduce_mean(loss)
                 grads = tape.gradient(loss, self.meta_model.trainable_variables)
-                # TODO check this alpha work or not
+                # TODO check this alpha work or not, not working, give up
                 # element wise multiply alpha and gradients
                 '''
                 grads2 = []
@@ -104,11 +107,30 @@ class MetaSGD:
             # grads_alpha = alpha_tape.gradient(mean_loss, self.alpha)
         # start meta learning step: using the initialization weight
         self.meta_model.set_weights(meta_weights)
-        print('origional lr:', self.meta_optimizer.learning_rate)
+        #print('origional lr:', self.meta_optimizer.learning_rate)
         if self.meta_optimizer:
+            # TODO: develop beta function
             self.meta_optimizer.learning_rate.assign(0.01)
-            print('updated lr:', self.meta_optimizer.learning_rate)
+            #print('updated lr:', self.meta_optimizer.learning_rate)
             self.meta_optimizer.apply_gradients(zip(grads_para, self.meta_model.trainable_variables))
             # self.meta_optimizer.apply_gradients(zip(grads_alpha, self.alpha))
         #print(self.alpha)
-        return mean_loss, batch_loss
+        return mean_loss.numpy()
+
+    def meta_fit(self, batch_size, basic_train=True, bootstrap_train=True):
+        # train over all task that cover the study domain
+        all_tasks = self.task_extractor.get_grid_locations()
+        history = []
+        if basic_train:
+            for step in range((len(all_tasks)//batch_size)):
+                locations = all_tasks[step*batch_size:(step+1)*batch_size]
+                loss = self._train_on_batch(locations=locations)
+                history.append(loss)
+                print('Now doing basic training step:', step+1, '/', len(all_tasks)//batch_size, 'loss: ', loss)
+        if bootstrap_train:
+            for step in range(self.meta_step):
+                loss = self._train_on_batch(batch_size=batch_size)
+                history.append(loss)
+                print('Now doing bootstrap training step:', step+1, '/', self.meta_step, 'loss: ', loss)
+        return history
+

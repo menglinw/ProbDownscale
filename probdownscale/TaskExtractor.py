@@ -98,20 +98,37 @@ class TaskExtractor():
         train_x_3 = np.remainder(np.array(y_index), 365)
         return train_x_1, train_x_2, train_x_3
 
-    def get_random_tasks(self, n_task, record=True):
-        train_x, train_y, test_x, test_y, locations= [], [], [], [], []
-        for _ in range(n_task):
-            x1, y1, x2, y2, location = self._get_random_task(record=record)
-            train_x.append(x1)
-            train_y.append(y1)
-            test_x.append(x2)
-            test_y.append(y2)
-            locations.append(location)
+    def get_random_tasks(self, n_task=None, record=True, locations=None):
+        if not locations:
+            train_x, train_y, test_x, test_y, locations= [], [], [], [], []
+            for _ in range(n_task):
+                x1, y1, x2, y2, location = self._get_random_task(record=record)
+                train_x.append(x1)
+                train_y.append(y1)
+                test_x.append(x2)
+                test_y.append(y2)
+                locations.append(location)
+        else:
+            train_x, train_y, test_x, test_y = [], [], [], []
+            for location in locations:
+                x1, y1, x2, y2, _ = self._get_random_task(record=record, is_random=False, lat_lon=location)
+                train_x.append(x1)
+                train_y.append(y1)
+                test_x.append(x2)
+                test_y.append(y2)
         return train_x, train_y, test_x, test_y, locations
 
     def get_order_tasks(self):
         # TODO do this later when downscaling
         pass
+
+    def get_grid_locations(self):
+        # all available topleft index of tasks
+        avlb_lats = self.h_lats[:-(self.task_dim[0]-1)]
+        avlb_lons = self.h_lons[:-(self.task_dim[1]-1)]
+        avlb_lats = [avlb_lats[i*self.task_dim[0]] for i in range(int(len(avlb_lats)/self.task_dim[0]))]
+        avlb_lons = [avlb_lons[i*self.task_dim[1]] for i in range(int(len(avlb_lons)/self.task_dim[1]))]
+        return list(product(avlb_lats, avlb_lons))
 
 
 
