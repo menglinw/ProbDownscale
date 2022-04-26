@@ -34,7 +34,7 @@ class MetaSGD:
         self.inner_optimizer = inner_optimizer
         self.task_extractor = task_extractor
 
-    def _train_on_batch(self, batch_size):
+    def _train_on_batch(self, batch_size, inner_rate_f=None, meta_rate_f=None, use_test_for_meta=True):
         """
 
         :param train_data: training data for one batch, including meta_train_X, meta_train_Y, meta_test_X, meta_test_Y
@@ -49,7 +49,9 @@ class MetaSGD:
 
         # save the weight as initialization
         meta_weights = self.meta_model.get_weights()
-        #print(self.alpha)
+        if inner_rate_f:
+            inner_rate = self.inner_optimizer.learning_rate.numpy()
+            self.inner_optimizer.learning_rate.assign(inner_rate_f(inner_rate, batch_size, self.inner_step))
         #self.inner_optimizer.learning_rate.assign(1)
         meta_train_X, meta_train_Y, meta_test_X, meta_test_Y, locations = self.task_extractor.get_random_tasks(batch_size)
         for train_X, train_Y in zip(meta_train_X, meta_train_Y):
@@ -79,14 +81,24 @@ class MetaSGD:
 
         with tf.GradientTape() as para_tape: # ValueError: No gradients provided for any variable:
             # calculate the test loss
-            for i, (test_X, test_Y) in enumerate(zip(meta_test_X, meta_test_Y)):
-                # load the trained weight after inner loop
-                self.meta_model.set_weights(task_weights[i])
+            if use_test_for_meta:
+                for i, (test_X, test_Y) in enumerate(zip(meta_test_X, meta_test_Y)):
+                    # load the trained weight after inner loop
+                    self.meta_model.set_weights(task_weights[i])
 
-                Y_hat = self.meta_model(test_X, training=True)
-                loss = self.loss(test_Y, Y_hat)
-                loss = tf.reduce_mean(loss)
-                batch_loss.append(loss)
+                    Y_hat = self.meta_model(test_X, training=True)
+                    loss = self.loss(test_Y, Y_hat)
+                    loss = tf.reduce_mean(loss)
+                    batch_loss.append(loss)
+            else:
+                for i, (train_X, train_Y) in enumerate(zip(meta_train_X, meta_train_Y)):
+                    # load the trained weight after inner loop
+                    self.meta_model.set_weights(task_weights[i])
+
+                    Y_hat = self.meta_model(train_X, training=True)
+                    loss = self.loss(train_Y, Y_hat)
+                    loss = tf.reduce_mean(loss)
+                    batch_loss.append(loss)
             mean_loss = tf.reduce_mean(batch_loss)
             grads_para = para_tape.gradient(mean_loss, self.meta_model.trainable_variables)
             # grads_alpha = alpha_tape.gradient(mean_loss, self.alpha)
@@ -94,9 +106,9 @@ class MetaSGD:
         self.meta_model.set_weights(meta_weights)
         print('origional lr:', self.meta_optimizer.learning_rate)
         if self.meta_optimizer:
-            self.meta_optimizer.learning_rate.assign(0.0123)
+            self.meta_optimizer.learning_rate.assign(0.01)
             print('updated lr:', self.meta_optimizer.learning_rate)
             self.meta_optimizer.apply_gradients(zip(grads_para, self.meta_model.trainable_variables))
             # self.meta_optimizer.apply_gradients(zip(grads_alpha, self.alpha))
         #print(self.alpha)
-        return mean_loss
+        return mean_loss, batch_loss
