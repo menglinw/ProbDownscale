@@ -54,7 +54,7 @@ class TaskExtractor():
             self.seen_location[sample_index] += 1
         return sample_index
 
-    def _get_random_task(self, is_random=True, record=True, lat_lon=None):
+    def _get_one_random_task(self, is_random=True, record=True, lat_lon=None, use_all_data=False):
         if is_random:
             # get random topleft index
             topleft_location = self._get_random_topleft_index(record=record)
@@ -75,10 +75,16 @@ class TaskExtractor():
                 l_lon_idx = np.argmin(np.abs(self.l_lons - lon))
                 l_data[:, i, j] = self.l_data[:, l_lat_idx, l_lon_idx]
 
-        # train test split
         avlb_y = list(range(h_data.shape[0]))[self.n_lag:]
-        test_y_day = sample(avlb_y, int(len(avlb_y)*self.test_proportion))
-        train_y_day = list(set(avlb_y).difference(set(test_y_day)))
+        # train test split
+        if use_all_data:
+            train_y_day = avlb_y
+            test_y = []
+        else:
+            test_y_day = sample(avlb_y, int(len(avlb_y) * self.test_proportion))
+            train_y_day = list(set(avlb_y).difference(set(test_y_day)))
+
+        # TODO: test use_all_data feature
 
         # flatten the data
         # output dim (time, channel, rows, cols)
