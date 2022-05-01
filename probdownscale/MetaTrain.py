@@ -2,10 +2,11 @@
 from tensorflow.keras import layers, models, losses
 import tensorflow as tf
 import numpy as np
-
+from random import sample
 
 class MetaSGD:
-    def __init__(self, target_model, target_loss, meta_step, meta_optimizer, inner_step, inner_optimizer, task_extractor):
+    def __init__(self, target_model, target_loss, meta_optimizer, inner_step, inner_optimizer, task_extractor,
+                 meta_loss=None):
         '''
         :param target_model:
         :param target_loss:
@@ -19,6 +20,7 @@ class MetaSGD:
 
         self.meta_model = target_model
         self.loss = target_loss
+        self.meta_loss = meta_loss
         '''
         self.alpha = []
         initializer = tf.random.Generator.from_seed(123)
@@ -28,11 +30,11 @@ class MetaSGD:
 
             self.alpha.append(init)
         '''
-        self.meta_step = meta_step
         self.meta_optimizer = meta_optimizer
         self.inner_step = inner_step
         self.inner_optimizer = inner_optimizer
         self.task_extractor = task_extractor
+        self.history = []
 
     def _train_on_batch(self, batch_size=None, inner_rate_f=None, meta_rate_f=None, use_test_for_meta=True, locations=None):
         """
@@ -90,7 +92,10 @@ class MetaSGD:
                     self.meta_model.set_weights(task_weights[i])
 
                     Y_hat = self.meta_model(test_X, training=True)
-                    loss = self.loss(test_Y, Y_hat)
+                    if self.meta_loss:
+                        loss = self.meta_loss(test_Y, Y_hat)
+                    else:
+                        loss = self.loss(test_Y, Y_hat)
                     loss = tf.reduce_mean(loss)
                     batch_loss.append(loss)
             else:
@@ -99,7 +104,10 @@ class MetaSGD:
                     self.meta_model.set_weights(task_weights[i])
 
                     Y_hat = self.meta_model(train_X, training=True)
-                    loss = self.loss(train_Y, Y_hat)
+                    if self.meta_loss:
+                        loss = self.meta_loss(train_Y, Y_hat)
+                    else:
+                        loss = self.loss(train_Y, Y_hat)
                     loss = tf.reduce_mean(loss)
                     batch_loss.append(loss)
             mean_loss = tf.reduce_mean(batch_loss)
@@ -110,27 +118,36 @@ class MetaSGD:
         #print('origional lr:', self.meta_optimizer.learning_rate)
         if self.meta_optimizer:
             # TODO: develop beta function
-            self.meta_optimizer.learning_rate.assign(0.01)
-            #print('updated lr:', self.meta_optimizer.learning_rate)
+            #self.meta_optimizer.learning_rate.assign(0.000001)
+            print('Meta lr:', self.meta_optimizer.learning_rate)
             self.meta_optimizer.apply_gradients(zip(grads_para, self.meta_model.trainable_variables))
             # self.meta_optimizer.apply_gradients(zip(grads_alpha, self.alpha))
+            # print(batch_loss)
         #print(self.alpha)
         return mean_loss.numpy()
 
-    def meta_fit(self, batch_size, basic_train=True, bootstrap_train=True):
+    def meta_fit(self, epochs, batch_size, basic_train=True, bootstrap_train=True, bootstrap_step=10, use_test_for_meta=True, randomize=True):
         # train over all task that cover the study domain
         all_tasks = self.task_extractor.get_grid_locations()
-        history = []
-        if basic_train:
-            for step in range((len(all_tasks)//batch_size)):
-                locations = all_tasks[step*batch_size:(step+1)*batch_size]
-                loss = self._train_on_batch(locations=locations)
-                history.append(loss)
-                print('Now doing basic training step:', step+1, '/', len(all_tasks)//batch_size, 'loss: ', loss)
-        if bootstrap_train:
-            for step in range(self.meta_step):
-                loss = self._train_on_batch(batch_size=batch_size)
-                history.append(loss)
-                print('Now doing bootstrap training step:', step+1, '/', self.meta_step, 'loss: ', loss)
-        return history
+        if randomize:
+            all_tasks = sample(all_tasks, len(all_tasks))
 
+        for i in range(epochs):
+            if basic_train:
+                for step in range((len(all_tasks)//batch_size)):
+                    locations = all_tasks[step*batch_size:(step+1)*batch_size]
+                    loss = self._train_on_batch(locations=locations, use_test_for_meta=use_test_for_meta)
+                    self.history.append(loss)
+                    print('Epoch:', i+1, '/', epochs, ' Basic training step: ', step+1, '/', len(all_tasks)//batch_size, 'loss: ', loss)
+            if bootstrap_train:
+                for step in range(bootstrap_step):
+                    loss = self._train_on_batch(batch_size=batch_size, use_test_for_meta=use_test_for_meta)
+                    self.history.append(loss)
+                    print('Epoch:', i+1, '/', epochs, 'Bootstrap training step:', step+1, '/', bootstrap_step, 'loss: ', loss)
+        return self.history
+
+    def downscale(self):
+        pass
+
+    def fine_tune(self):
+        pass
