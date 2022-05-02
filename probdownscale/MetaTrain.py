@@ -126,7 +126,8 @@ class MetaSGD:
         #print(self.alpha)
         return mean_loss.numpy()
 
-    def meta_fit(self, epochs, batch_size, basic_train=True, bootstrap_train=True, bootstrap_step=10, use_test_for_meta=True, randomize=True):
+    def meta_fit(self, epochs, batch_size, basic_train=True, bootstrap_train=True, bootstrap_step=10,
+                 use_test_for_meta=True, randomize=True):
         # train over all task that cover the study domain
         all_tasks = self.task_extractor.get_grid_locations()
         if randomize:
@@ -146,8 +147,3 @@ class MetaSGD:
                     print('Epoch:', i+1, '/', epochs, 'Bootstrap training step:', step+1, '/', bootstrap_step, 'loss: ', loss)
         return self.history
 
-    def downscale(self):
-        pass
-
-    def fine_tune(self):
-        pass

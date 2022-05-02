@@ -54,7 +54,7 @@ class TaskExtractor():
             self.seen_location[sample_index] += 1
         return sample_index
 
-    def _get_one_random_task(self, is_random=True, record=True, lat_lon=None, use_all_data=False):
+    def _get_one_random_task(self, is_random=True, record=True, lat_lon=None, use_all_data=False, return_init=False):
         if is_random:
             # get random topleft index
             topleft_location = self._get_random_topleft_index(record=record)
@@ -79,12 +79,10 @@ class TaskExtractor():
         # train test split
         if use_all_data:
             train_y_day = avlb_y
-            test_y = []
+            test_y_day = []
         else:
             test_y_day = sample(avlb_y, int(len(avlb_y) * self.test_proportion))
             train_y_day = list(set(avlb_y).difference(set(test_y_day)))
-
-        # TODO: test use_all_data feature
 
         # flatten the data
         # output dim (time, channel, rows, cols)
@@ -93,7 +91,13 @@ class TaskExtractor():
 
         train_x_1, train_x_2, train_x_3 = self._get_inputX(train_y_day, h_data, l_data)
         test_x_1, test_x_2, test_x_3 = self._get_inputX(test_y_day, h_data, l_data)
-        return [train_x_1, train_x_2, train_x_3], train_y, [test_x_1, test_x_2, test_x_3], test_y, topleft_location
+        init_1, init_2, init_3 = self._get_inputX([h_data.shape[0]-1], h_data, l_data)
+        if return_init:
+            return [train_x_1, train_x_2, train_x_3], train_y, [test_x_1, test_x_2, test_x_3], test_y, \
+                   topleft_location, [init_1, init_2, init_3]
+        else:
+            return [train_x_1, train_x_2, train_x_3], train_y, [test_x_1, test_x_2, test_x_3], test_y, topleft_location
+
 
     def _get_inputX(self, y_index, h_data, l_data):
         # input 1: HR temporal input
@@ -110,7 +114,7 @@ class TaskExtractor():
         if not locations:
             train_x, train_y, test_x, test_y, locations= [], [], [], [], []
             for _ in range(n_task):
-                x1, y1, x2, y2, location = self._get_random_task(record=record)
+                x1, y1, x2, y2, location = self._get_one_random_task(record=record)
                 train_x.append(x1)
                 train_y.append(y1)
                 test_x.append(x2)
@@ -119,7 +123,7 @@ class TaskExtractor():
         else:
             train_x, train_y, test_x, test_y = [], [], [], []
             for location in locations:
-                x1, y1, x2, y2, _ = self._get_random_task(record=record, is_random=False, lat_lon=location)
+                x1, y1, x2, y2, _ = self._get_one_random_task(record=record, is_random=False, lat_lon=location)
                 train_x.append(x1)
                 train_y.append(y1)
                 test_x.append(x2)
