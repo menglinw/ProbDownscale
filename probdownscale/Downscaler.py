@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 from random import sample
 from tensorflow_probability import distributions as tfd
+from itertools import product
 
 
 class Downscaler():
@@ -38,21 +39,20 @@ class Downscaler():
         self.meta_model.set_weights(self.meta_weights)
 
         # iter over task to downscale
-        downscaled_data = np.zeros((self.l_data.shape[0],
-                                    self.task_extractor.h_data.shape[0],
-                                    self.task_extractor.h_data[1]))
+        downscaled_data = np.zeros((self.l_data.shape[0]-1,
+                                    self.task_extractor.h_data.shape[1],
+                                    self.task_extractor.h_data.shape[2]))
 
-        lats = [self.task_extractor.h_lats[i*self.task_dim[0]] for i in
-                range((len(self.task_extractor.h_lats)//self.task_dim[0]))]
-        lons = [self.task_extractor.h_lons[i * self.task_dim[1]] for i in
-                range((len(self.task_extractor.h_lons) // self.task_dim[1]))]
-        locations = list(np.product(lats, lons))
+        lats = [self.task_extractor.h_lats[int(i*self.task_dim[0])] for i in range(int(len(self.task_extractor.h_lats)//self.task_dim[0]))]
+
+        lons = [self.task_extractor.h_lons[int(i * self.task_dim[1])] for i in range(int(len(self.task_extractor.h_lons) // self.task_dim[1]))]
+        locations = list(product(lats, lons))
         for location in locations:
             # initial the meta model
             self.meta_model.set_weights(self.meta_weights)
             temp = self._task_downscaler(location, epochs=fine_tune_epochs, n_sample=n_sample)
-            lat_index = self.task_extractor.h_lats.index(location[0])
-            lon_index = self.task_extractor.h_lons.index(location[1])
+            lat_index = list(self.task_extractor.h_lats).index(location[0])
+            lon_index = list(self.task_extractor.h_lons).index(location[1])
             downscaled_data[:, lat_index:(lat_index+self.task_dim[0]), lon_index:(lon_index+self.task_dim[1])] = temp
         return downscaled_data
 
@@ -71,7 +71,7 @@ class Downscaler():
         self.meta_model.fit(train_x, train_y, epochs=epochs)
 
         # predict several steps
-        pred = self.sequential_predict(self.meta_model, init, l_data, self.l_data.shape[0], n_sample=n_sample)
+        pred = self.sequential_predict(self.meta_model, init, l_data, self.l_data.shape[0]-1, n_sample=n_sample)
         return pred
 
     def slice_parameter_vectors(self, parameter_vector, no_parameters):
@@ -84,7 +84,10 @@ class Downscaler():
         init_1, init_3 = init_data
         init_2 = np.expand_dims(l_data[0], 0)
         for i in range(predict_steps):
-            y_hat = model.predict([init_1[-self.n_lag:], init_2, init_3])
+            #print('Input 1 shape:', init_1[:, -self.n_lag:].shape)
+            #print('Input 2 shape:', init_2.shape)
+            #print('Input 3 shape:', init_3.shape)
+            y_hat = model.predict([init_1[:, -self.n_lag:], init_2, init_3])
             alpha, mu, sigma = self.slice_parameter_vectors(y_hat, 3)
             alpha1 = tf.reshape(alpha, (tf.shape(alpha)[0], self.task_dim[0], self.task_dim[1], self.components))
             mu1 = tf.reshape(mu, (tf.shape(mu)[0], self.task_dim[0], self.task_dim[1], self.components))
@@ -101,5 +104,5 @@ class Downscaler():
             init_2 = np.expand_dims(l_data[i+1], 0)
             init_3 = np.remainder(init_3+1, 365)
         
-        return init_1[self.n_lag:]
+        return init_1[0, self.n_lag:, 0, :, :]
 

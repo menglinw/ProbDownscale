@@ -4,12 +4,7 @@ import sys
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
-import probdownscale.utils.data_processing as data_processing
-import geopandas as gpd
-import sys
-import os
-import copy
-import pandas as pd
+# import probdownscale.utils.data_processing as data_processing
 from itertools import product
 from random import sample
 
@@ -41,6 +36,9 @@ class TaskExtractor():
         self.avlb_location = list(product(avlb_lats, avlb_lons))
         # collect all topleft index we have seen
         self.seen_location = dict()
+
+    def get_seen(self):
+        return self.seen_location
 
     def _get_random_topleft_index(self, record=True):
         '''
@@ -132,10 +130,6 @@ class TaskExtractor():
                 test_x.append(x2)
                 test_y.append(y2)
         return train_x, train_y, test_x, test_y, locations
-
-    def get_order_tasks(self):
-        # TODO do this later when downscaling
-        pass
 
     def get_grid_locations(self):
         # all available topleft index of tasks

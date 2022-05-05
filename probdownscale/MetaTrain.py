@@ -4,9 +4,10 @@ import tensorflow as tf
 import numpy as np
 from random import sample
 
+
 class MetaSGD:
     def __init__(self, target_model, target_loss, meta_optimizer, inner_step, inner_optimizer, task_extractor,
-                 meta_loss=None):
+                 meta_loss=None, meta_lr=0.0001):
         '''
         :param target_model:
         :param target_loss:
@@ -21,22 +22,16 @@ class MetaSGD:
         self.meta_model = target_model
         self.loss = target_loss
         self.meta_loss = meta_loss
-        '''
-        self.alpha = []
-        initializer = tf.random.Generator.from_seed(123)
-        for tensor in target_model.trainable_variables:
-            init = tf.Variable(initializer.normal(shape=tf.shape(tensor), mean=0, stddev=0.01))
-            print(tf.shape(init))
-
-            self.alpha.append(init)
-        '''
         self.meta_optimizer = meta_optimizer
         self.inner_step = inner_step
         self.inner_optimizer = inner_optimizer
         self.task_extractor = task_extractor
         self.history = []
+        self.seen_locations = dict()
+        self.meta_lr = meta_lr
 
-    def _train_on_batch(self, batch_size=None, inner_rate_f=None, meta_rate_f=None, use_test_for_meta=True, locations=None):
+    def _train_on_batch(self, batch_size=None, inner_rate_f=None, beta_function=None, use_test_for_meta=True,
+                        locations=None, covariance_function=None, distance_function=None):
         """
 
         :param train_data: training data for one batch, including meta_train_X, meta_train_Y, meta_test_X, meta_test_Y
@@ -56,9 +51,14 @@ class MetaSGD:
             self.inner_optimizer.learning_rate.assign(inner_rate_f(inner_rate, batch_size, self.inner_step))
         #self.inner_optimizer.learning_rate.assign(1)
         if locations:
-            meta_train_X, meta_train_Y, meta_test_X, meta_test_Y, locations = self.task_extractor.get_random_tasks(locations=locations)
+            meta_train_X, meta_train_Y, meta_test_X, meta_test_Y, locations = self.task_extractor.get_random_tasks(locations=locations, record=True)
         else:
-            meta_train_X, meta_train_Y, meta_test_X, meta_test_Y, locations = self.task_extractor.get_random_tasks(batch_size)
+            meta_train_X, meta_train_Y, meta_test_X, meta_test_Y, locations = self.task_extractor.get_random_tasks(batch_size, record=True)
+
+        for loc in locations:
+            self.seen_locations.setdefault(loc, 0)
+            self.seen_locations[loc] += 1
+
         for train_X, train_Y in zip(meta_train_X, meta_train_Y):
 
             # load the initialization
@@ -118,7 +118,12 @@ class MetaSGD:
         #print('origional lr:', self.meta_optimizer.learning_rate)
         if self.meta_optimizer:
             # TODO: develop beta function
-            #self.meta_optimizer.learning_rate.assign(0.000001)
+            if beta_function:
+                lr = beta_function(meta_rate=self.meta_lr, batch_locations=locations,
+                                   seen_locations=self.seen_locations,
+                                   covariance_function=covariance_function,
+                                   distance_function=distance_function)
+                self.meta_optimizer.learning_rate.assign(lr)
             print('Meta lr:', self.meta_optimizer.learning_rate)
             self.meta_optimizer.apply_gradients(zip(grads_para, self.meta_model.trainable_variables))
             # self.meta_optimizer.apply_gradients(zip(grads_alpha, self.alpha))
@@ -127,7 +132,8 @@ class MetaSGD:
         return mean_loss.numpy()
 
     def meta_fit(self, epochs, batch_size, basic_train=True, bootstrap_train=True, bootstrap_step=10,
-                 use_test_for_meta=True, randomize=True):
+                 use_test_for_meta=True, randomize=True, beta_function=None, covariance_function=None,
+                 distance_function=None):
         # train over all task that cover the study domain
         all_tasks = self.task_extractor.get_grid_locations()
         if randomize:
@@ -137,12 +143,17 @@ class MetaSGD:
             if basic_train:
                 for step in range((len(all_tasks)//batch_size)):
                     locations = all_tasks[step*batch_size:(step+1)*batch_size]
-                    loss = self._train_on_batch(locations=locations, use_test_for_meta=use_test_for_meta)
+                    loss = self._train_on_batch(locations=locations, use_test_for_meta=use_test_for_meta,
+                                                beta_function=beta_function, covariance_function=covariance_function,
+                                                distance_function=distance_function
+                                                )
                     self.history.append(loss)
                     print('Epoch:', i+1, '/', epochs, ' Basic training step: ', step+1, '/', len(all_tasks)//batch_size, 'loss: ', loss)
             if bootstrap_train:
                 for step in range(bootstrap_step):
-                    loss = self._train_on_batch(batch_size=batch_size, use_test_for_meta=use_test_for_meta)
+                    loss = self._train_on_batch(batch_size=batch_size, use_test_for_meta=use_test_for_meta,
+                                                beta_function=beta_function, covariance_function=covariance_function,
+                                                distance_function=distance_function)
                     self.history.append(loss)
                     print('Epoch:', i+1, '/', epochs, 'Bootstrap training step:', step+1, '/', bootstrap_step, 'loss: ', loss)
         return self.history
