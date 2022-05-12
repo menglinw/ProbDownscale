@@ -1,5 +1,9 @@
+
 import os
 import sys
+module_path = os.path.abspath(os.path.join('../..'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
 import probdownscale
 from probdownscale.MetaTrain import MetaSGD
 from probdownscale.TaskExtractor import TaskExtractor
