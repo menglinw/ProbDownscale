@@ -141,10 +141,9 @@ def beta_function(meta_rate, batch_locations, seen_locations, covariance_functio
             temp += cov * (1 + log(n))
     mean_cov = temp/(batch_size*sum(list(seen_locations.values())))
     cov_factor = exp(-2*mean_cov**0.75)
-    bsize_factor = exp(3*(batch_size/seen_size))/exp(2)
-    print('input rate:', meta_rate)
+    bsize_factor = exp((batch_size/seen_size)**0.2)/exp(0.2)
     print('covariance factor:', cov_factor)
-    print('batch size factor:', exp((batch_size/seen_size)**0.1)-1)
+    print('batch size factor:', bsize_factor)
     lr = meta_rate*bsize_factor*cov_factor
     return lr
 
