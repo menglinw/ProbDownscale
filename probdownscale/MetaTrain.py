@@ -158,6 +158,6 @@ class MetaSGD:
                     print('Epoch:', i+1, '/', epochs, 'Bootstrap training step:', step+1, '/', bootstrap_step, 'loss: ', loss)
         return self.history
 
-    def save_weights(self, weights_name):
+    def save_meta_weights(self, weights_name):
         self.meta_model.save_weights(weights_name)
 
