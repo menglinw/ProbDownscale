@@ -163,7 +163,7 @@ meta_learner = MetaSGD(meta_model, res_loss,  meta_optimizer, inner_step, inner_
 
 
 # meta train with beta
-meta_beta_history = meta_learner.meta_fit(2, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True,
+meta_beta_history = meta_learner.meta_fit(1, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True,
                                     beta_function=beta_function, covariance_function=covariance_function, distance_function=distance_function)
 meta_learner.save_meta_weights(r"../../Results/meta_weights_wb")
 
@@ -173,7 +173,7 @@ inner_optimizer_wob = tf.keras.optimizers.Adam(0.001)
 meta_optimizer_wob = tf.keras.optimizers.Adam(0.001)
 meta_learner_wob = MetaSGD(meta_model_wob, res_loss,  meta_optimizer_wob, inner_step, inner_optimizer_wob, taskextractor_meta)
 # meta train without beta
-meta_history_wob = meta_learner_wob.meta_fit(2, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True)
+meta_history_wob = meta_learner_wob.meta_fit(1, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True)
 meta_learner_wob.save_meta_weights(r"../../Results/meta_weights_wob")
 
 plt.plot(meta_history_wob, "-b", label="without beta")
