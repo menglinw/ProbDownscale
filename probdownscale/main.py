@@ -140,8 +140,8 @@ def beta_function(meta_rate, batch_locations, seen_locations, covariance_functio
             cov = covariance_function(distance_function(b_loc, s_loc))
             temp += cov * (1 + log(n))
     mean_cov = temp/(batch_size*sum(list(seen_locations.values())))
-    cov_factor = exp(-mean_cov**0.5)
-    bsize_factor = exp((batch_size/seen_size)**0.5)-1
+    cov_factor = exp(-2*mean_cov**0.75)
+    bsize_factor = 2*exp(10*(batch_size/seen_size))/exp(10)
     print('covariance factor:', cov_factor)
     print('batch size factor:', exp((batch_size/seen_size)**0.1)-1)
     lr = meta_rate*bsize_factor*cov_factor
@@ -159,21 +159,23 @@ inner_step = 1
 inner_optimizer = tf.keras.optimizers.Adam(0.001)
 
 meta_learner = MetaSGD(meta_model, res_loss,  meta_optimizer, inner_step, inner_optimizer, taskextractor_meta, meta_lr=0.001)
+meta_learner.save_meta_weights(r"../../Results/meta_weights_wb")
 
 # meta train with beta
-meta_beta_history = meta_learner.meta_fit(10, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True,
+meta_beta_history = meta_learner.meta_fit(2, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True,
                                     beta_function=beta_function, covariance_function=covariance_function, distance_function=distance_function)
 
-meta_model_wob = model_generator()
+meta_model_wob = model_generator(components, n_lag, task_dim)
 inner_optimizer_wob = tf.keras.optimizers.Adam(0.001)
 meta_optimizer_wob = tf.keras.optimizers.Adam(0.001)
 meta_learner_wob = MetaSGD(meta_model_wob, res_loss,  meta_optimizer_wob, inner_step, inner_optimizer_wob, taskextractor)
 # meta train without beta
-meta_history_wob = meta_learner_wob.meta_fit(10, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True)
+meta_history_wob = meta_learner_wob.meta_fit(2, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True)
+meta_learner_wob.save_meta_weights(r"../../Results/meta_weights_wob")
 
 plt.plot(meta_history_wob, "-b", label="without beta")
 plt.plot(meta_beta_history, "-r", label="with beta")
 plt.legend(loc="upper left")
 plt.title('Meta Training History Compare')
 plt.show()
-plt.savefig('Meta_train_compare')
+plt.savefig('../../Results/Meta_train_compare.jpg')
