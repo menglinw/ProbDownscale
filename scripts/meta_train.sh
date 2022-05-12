@@ -13,4 +13,4 @@ module load cuda/10.2.89
 module load anaconda3
 eval "$(conda shell.bash hook)"
 conda activate cGAN_space
-python3 main.py
+python3 ../probdownscale/main.py
