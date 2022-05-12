@@ -26,17 +26,17 @@ g06_data = nc.Dataset(file_path_g_06)
 m_data_nc = nc.Dataset(file_path_m)
 
 # define lat&lon of MERRA, G5NR and mete
-M_lons = m_data_nc.variables['lon'][:15]
+M_lons = m_data_nc.variables['lon']
 # self.M_lons = (M_lons-M_lons.mean())/M_lons.std()
-M_lats = m_data_nc.variables['lat'][:15]
+M_lats = m_data_nc.variables['lat']
 # self.M_lats = (M_lats-M_lats.mean())/M_lats.std()
-G_lons = g05_data.variables['lon'][:30]
+G_lons = g05_data.variables['lon']
 # self.G_lons = (G_lons-G_lons.mean())/G_lons.std()
-G_lats = g05_data.variables['lat'][:30]
+G_lats = g05_data.variables['lat']
 
 # extract target data
-g_data = np.concatenate((g05_data.variables[target_var][:, :30, :30], g06_data.variables[target_var][:, :30, :30]), axis=0)
-m_data = m_data_nc.variables[target_var][5*365:7*365, :15, :15]
+g_data = np.concatenate((g05_data.variables[target_var][:, :495, :785], g06_data.variables[target_var][:, :495, :785]), axis=0)
+m_data = m_data_nc.variables[target_var][5*365:7*365]
 
 # split data into traing and test
 train_g_data, test_g_data = g_data[:657], g_data[657:]
@@ -162,7 +162,7 @@ meta_learner = MetaSGD(meta_model, res_loss,  meta_optimizer, inner_step, inner_
 
 
 # meta train with beta
-meta_beta_history = meta_learner.meta_fit(1, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True,
+meta_beta_history = meta_learner.meta_fit(10, batch_size=8, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True,
                                     beta_function=beta_function, covariance_function=covariance_function, distance_function=distance_function)
 meta_learner.save_meta_weights(r"../../Results/meta_weights_wb")
 
@@ -172,7 +172,7 @@ inner_optimizer_wob = tf.keras.optimizers.Adam(0.001)
 meta_optimizer_wob = tf.keras.optimizers.Adam(0.001)
 meta_learner_wob = MetaSGD(meta_model_wob, res_loss,  meta_optimizer_wob, inner_step, inner_optimizer_wob, taskextractor_meta)
 # meta train without beta
-meta_history_wob = meta_learner_wob.meta_fit(1, batch_size=3, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True)
+meta_history_wob = meta_learner_wob.meta_fit(10, batch_size=8, basic_train=True, bootstrap_train=True, use_test_for_meta=True, randomize=True)
 meta_learner_wob.save_meta_weights(r"../../Results/meta_weights_wob")
 
 plt.plot(meta_history_wob, "-b", label="without beta")
