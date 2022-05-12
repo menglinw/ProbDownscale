@@ -1,12 +1,8 @@
 
 import os
 import sys
-module_path = os.path.abspath(os.path.join('../..'))
-if module_path not in sys.path:
-    sys.path.append(module_path)
-import probdownscale
-from probdownscale.MetaTrain import MetaSGD
-from probdownscale.TaskExtractor import TaskExtractor
+from MetaTrain import MetaSGD
+from TaskExtractor import TaskExtractor
 import math
 import numpy as np
 import netCDF4 as nc
@@ -19,9 +15,9 @@ from tensorflow_probability import distributions as tfd
 from matplotlib import pyplot as plt
 from math import exp, sqrt, log
 
-file_path_g_05 = r'C:\Users\96349\Documents\Downscale_data\MERRA2\G5NR_aerosol_variables_over_MiddleEast_daily_20050516-20060515.nc'
-file_path_g_06 =  r'C:\Users\96349\Documents\Downscale_data\MERRA2\G5NR_aerosol_variables_over_MiddleEast_daily_20060516-20070515.nc'
-file_path_m = r'C:\Users\96349\Documents\Downscale_data\MERRA2\MERRA2_aerosol_variables_over_MiddleEast_daily_20000516-20180515.nc'
+file_path_g_06 = '/project/mereditf_284/menglin/Downscale_data/MERRA2/G5NR_aerosol_variables_over_MiddleEast_daily_20060516-20070515.nc'
+file_path_g_05 = '/project/mereditf_284/menglin/Downscale_data/MERRA2/G5NR_aerosol_variables_over_MiddleEast_daily_20050516-20060515.nc'
+file_path_m = '/project/mereditf_284/menglin/Downscale_data/MERRA2/MERRA2_aerosol_variables_over_MiddleEast_daily_20000516-20180515.nc'
 target_var = 'BCSMASS'
 
 # read data
