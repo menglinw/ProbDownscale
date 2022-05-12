@@ -75,9 +75,7 @@ class Downscaler():
         return pred
 
     def slice_parameter_vectors(self, parameter_vector, no_parameters):
-        return [parameter_vector[:, i *self.task_dim[0]*self.task_dim[1]*self.components:
-                                    (i + 1)*self.task_dim[0]*self.task_dim[1]*self.components]
-                for i in range(no_parameters)]
+        return [parameter_vector[:, i *self.components: (i + 1)*self.components] for i in range(no_parameters)]
 
     def sequential_predict(self, model, init_data, l_data, predict_steps, n_sample):
         # TODO: need to debug
@@ -89,17 +87,13 @@ class Downscaler():
             #print('Input 3 shape:', init_3.shape)
             y_hat = model.predict([init_1[:, -self.n_lag:], init_2, init_3])
             alpha, mu, sigma = self.slice_parameter_vectors(y_hat, 3)
-            alpha1 = tf.reshape(alpha, (tf.shape(alpha)[0], self.task_dim[0], self.task_dim[1], self.components))
-            mu1 = tf.reshape(mu, (tf.shape(mu)[0], self.task_dim[0], self.task_dim[1], self.components))
-            sigma1 = tf.reshape(sigma, (tf.shape(sigma)[0], self.task_dim[0], self.task_dim[1], self.components))
             MDN_Yhat = tfd.MixtureSameFamily(
-                mixture_distribution=tfd.Categorical(probs=alpha1),
+                mixture_distribution=tfd.Categorical(probs=alpha),
                 components_distribution=tfd.Gamma(
-                    concentration=mu1, rate=sigma1))
+                    concentration=mu, rate=sigma))
 
-            Yhat = MDN_Yhat.sample(n_sample).numpy().mean(axis=0)
-            Yhat = np.expand_dims(Yhat, 1)
-            Yhat = np.expand_dims(Yhat, 0)
+            Yhat = MDN_Yhat.sample(np.prod(self.task_dim)).numpy().reshape(self.task_dim)
+            Yhat = np.expand_dims(Yhat, [0,1, -1])
             init_1 = np.concatenate([init_1, Yhat], axis=1)
             init_2 = np.expand_dims(l_data[i+1], 0)
             init_3 = np.remainder(init_3+1, 365)

@@ -14,8 +14,8 @@ class TaskExtractor():
         # initialize all arguments
         # high and low resolution data
         self.h_data, self.l_data = data
-        self.h_data = (self.h_data - self.h_data.min())/(self.h_data.max()- self.h_data.min())*10000
-        self.l_data = (self.l_data - self.l_data.min())/(self.l_data.max() - self.l_data.min())*10000
+        self.h_data = ((self.h_data - self.h_data.min())/(self.h_data.max()- self.h_data.min()))*10
+        self.l_data = ((self.l_data - self.l_data.min())/(self.l_data.max() - self.l_data.min()))*10
         # high and low resolution latitude and longitude
         self.h_lats, self.h_lons, self.l_lats, self.l_lons = lats_lons
         # task dimension
@@ -52,7 +52,8 @@ class TaskExtractor():
             self.seen_location[sample_index] += 1
         return sample_index
 
-    def _get_one_random_task(self, is_random=True, record=True, lat_lon=None, use_all_data=False, return_init=False):
+    def _get_one_random_task(self, is_random=True, record=True, lat_lon=None, is_seq=True, use_all_data=False,
+                             return_init=False):
         if is_random:
             # get random topleft index
             topleft_location = self._get_random_topleft_index(record=record)
@@ -79,9 +80,17 @@ class TaskExtractor():
             train_y_day = avlb_y
             test_y_day = []
         else:
-            test_y_day = sample(avlb_y, int(len(avlb_y) * self.test_proportion))
-            train_y_day = list(set(avlb_y).difference(set(test_y_day)))
+            if is_seq:
+                test_y_day = avlb_y[-int(len(avlb_y) * self.test_proportion):]
+                train_y_day = list(set(avlb_y).difference(set(test_y_day)))
+            else:
+                test_y_day = sample(avlb_y, int(len(avlb_y) * self.test_proportion))
+                train_y_day = list(set(avlb_y).difference(set(test_y_day)))
 
+
+        train_y_day = sample(train_y_day, len(train_y_day))
+        #print('Test Y Index:', test_y_day)
+        #print('Train Y Index:', train_y_day)
         # flatten the data
         # output dim (time, channel, rows, cols)
         train_y = h_data[train_y_day]
@@ -104,9 +113,9 @@ class TaskExtractor():
         # input 1: HR temporal input
         # input 2: LR image input
         # input 3: day of the year
-        train_x_1 = np.zeros((len(y_index), self.n_lag, 1, self.task_dim[0], self.task_dim[1]))
+        train_x_1 = np.zeros((len(y_index), self.n_lag, self.task_dim[0], self.task_dim[1], 1))
         for i, indx in enumerate(y_index):
-            train_x_1[i, :, :, :, :] = np.expand_dims(h_data[int(indx-self.n_lag):int(indx)], 1)
+            train_x_1[i, :, :, :, :] = np.expand_dims(h_data[int(indx-self.n_lag):int(indx)], -1)
         train_x_2 = l_data[y_index]
         train_x_3 = np.remainder(np.array(y_index), 365)
         return train_x_1, train_x_2, train_x_3

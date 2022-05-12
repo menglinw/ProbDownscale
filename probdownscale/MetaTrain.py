@@ -7,7 +7,7 @@ from random import sample
 
 class MetaSGD:
     def __init__(self, target_model, target_loss, meta_optimizer, inner_step, inner_optimizer, task_extractor,
-                 meta_loss=None, meta_lr=0.0001):
+                 meta_loss=None, meta_lr=0.005):
         '''
         :param target_model:
         :param target_loss:
