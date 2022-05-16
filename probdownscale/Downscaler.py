@@ -32,7 +32,7 @@ class Downscaler():
                 l_data[:, i, j] = self.l_data[:, l_lat_idx, l_lon_idx]
         return l_data
 
-    def downscale(self, fine_tune_epochs, optimizer, n_sample):
+    def downscale(self, fine_tune_epochs, optimizer):
         # TODO: need to debug
         # initialize the meta model
         self.meta_model.compile(optimizer=optimizer, loss=self.loss)
@@ -50,13 +50,13 @@ class Downscaler():
         for location in locations:
             # initial the meta model
             self.meta_model.set_weights(self.meta_weights)
-            temp = self._task_downscaler(location, epochs=fine_tune_epochs, n_sample=n_sample)
+            temp = self._task_downscaler(location, epochs=fine_tune_epochs)
             lat_index = list(self.task_extractor.h_lats).index(location[0])
             lon_index = list(self.task_extractor.h_lons).index(location[1])
             downscaled_data[:, lat_index:(lat_index+self.task_dim[0]), lon_index:(lon_index+self.task_dim[1])] = temp
         return downscaled_data
 
-    def _task_downscaler(self, location, epochs, n_sample):
+    def _task_downscaler(self, location, epochs):
         ## TODO: need to debug
         train_x, train_y, _, _, location, init = self.task_extractor._get_one_random_task(is_random=False, record=False,
                                                                                     lat_lon=location, use_all_data=True,
@@ -71,13 +71,13 @@ class Downscaler():
         self.meta_model.fit(train_x, train_y, epochs=epochs)
 
         # predict several steps
-        pred = self.sequential_predict(self.meta_model, init, l_data, self.l_data.shape[0]-1, n_sample=n_sample)
+        pred = self.sequential_predict(self.meta_model, init, l_data, self.l_data.shape[0]-1)
         return pred
 
     def slice_parameter_vectors(self, parameter_vector, no_parameters):
         return [parameter_vector[:, i *self.components: (i + 1)*self.components] for i in range(no_parameters)]
 
-    def sequential_predict(self, model, init_data, l_data, predict_steps, n_sample):
+    def sequential_predict(self, model, init_data, l_data, predict_steps):
         # TODO: need to debug
         init_1, init_3 = init_data
         init_2 = np.expand_dims(l_data[0], 0)

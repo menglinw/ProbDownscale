@@ -29,6 +29,7 @@ class MetaSGD:
         self.history = []
         self.seen_locations = dict()
         self.meta_lr = meta_lr
+        self.beta_history = []
 
     def _train_on_batch(self, batch_size=None, inner_rate_f=None, beta_function=None, use_test_for_meta=True,
                         locations=None, covariance_function=None, distance_function=None):
@@ -55,9 +56,20 @@ class MetaSGD:
         else:
             meta_train_X, meta_train_Y, meta_test_X, meta_test_Y, locations = self.task_extractor.get_random_tasks(batch_size, record=True)
 
+        # add location to the seen dictionary
         for loc in locations:
             self.seen_locations.setdefault(loc, 0)
             self.seen_locations[loc] += 1
+
+        # if beta function is given, update learning rate with beta function
+        if beta_function:
+            lr = beta_function(meta_rate=self.meta_lr, batch_locations=locations,
+                               seen_locations=self.seen_locations,
+                               covariance_function=covariance_function,
+                               distance_function=distance_function)
+            self.beta_history.append(lr)
+            self.meta_optimizer.learning_rate.assign(lr)
+            self.inner_optimizer.learning_rate.assign(lr)
 
         for train_X, train_Y in zip(meta_train_X, meta_train_Y):
 
@@ -117,14 +129,9 @@ class MetaSGD:
         self.meta_model.set_weights(meta_weights)
         #print('origional lr:', self.meta_optimizer.learning_rate)
         if self.meta_optimizer:
-            # TODO: develop beta function
-            if beta_function:
-                lr = beta_function(meta_rate=self.meta_lr, batch_locations=locations,
-                                   seen_locations=self.seen_locations,
-                                   covariance_function=covariance_function,
-                                   distance_function=distance_function)
-                self.meta_optimizer.learning_rate.assign(lr)
+
             print('Meta lr:', self.meta_optimizer.learning_rate)
+            print('Base lr:', self.inner_optimizer.learning_rate)
             self.meta_optimizer.apply_gradients(zip(grads_para, self.meta_model.trainable_variables))
             # self.meta_optimizer.apply_gradients(zip(grads_alpha, self.alpha))
             # print(batch_loss)
@@ -156,7 +163,7 @@ class MetaSGD:
                                                 distance_function=distance_function)
                     self.history.append(loss)
                     print('Epoch:', i+1, '/', epochs, 'Bootstrap training step:', step+1, '/', bootstrap_step, 'loss: ', loss)
-        return self.history
+        return self.history, self.beta_history
 
     def save_meta_weights(self, weights_name):
         self.meta_model.save_weights(weights_name)

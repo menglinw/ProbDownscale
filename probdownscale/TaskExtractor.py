@@ -99,8 +99,7 @@ class TaskExtractor():
         train_x_1, train_x_2, train_x_3 = self._get_inputX(train_y_day, h_data, l_data)
         test_x_1, test_x_2, test_x_3 = self._get_inputX(test_y_day, h_data, l_data)
         init_1 = h_data[-self.n_lag:]
-        init_1 = np.expand_dims(init_1, 1)
-        init_1 = np.expand_dims(init_1, 0)
+        init_1 = np.expand_dims(init_1, [0, -1])
         init_3 = np.remainder(np.array([h_data.shape[0]]), 365)
         if return_init:
             return [train_x_1, train_x_2, train_x_3], train_y, [test_x_1, test_x_2, test_x_3], test_y, \
