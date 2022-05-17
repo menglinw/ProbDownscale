@@ -214,7 +214,7 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
 
     # meta train with beta
     meta_beta_history = meta_learner.meta_fit(n_epochs, batch_size=batch_size, basic_train=True, bootstrap_train=True,
-                                              use_test_for_meta=True, randomize=True, beta_function=beta_function,
+                                              randomize=True, beta_function=beta_function,
                                               covariance_function=covariance_function,
                                               distance_function=distance_function)
     if prob:
@@ -229,7 +229,7 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
     meta_learner_wob = MetaSGD(prob_meta_model_wob, loss,  meta_optimizer_wob, inner_step, inner_optimizer_wob, taskextractor_meta)
     # meta train without beta
     meta_history_wob = meta_learner_wob.meta_fit(n_epochs, batch_size=batch_size, basic_train=True,
-                                                 bootstrap_train=True, use_test_for_meta=True, randomize=True)
+                                                 bootstrap_train=True, randomize=True)
     if prob:
         meta_learner_wob.save_meta_weights(r"../../Results/meta_weights_wob_prob")
     else:
