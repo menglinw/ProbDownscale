@@ -235,8 +235,10 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
     else:
         meta_learner_wob.save_meta_weights(r"../../Results/meta_weights_wob")
 
-    plt.plot(meta_history_wob[0], "-b", label="without beta")
-    plt.plot(meta_beta_history[0], "-r", label="with beta")
+    plt.plot(meta_history_wob[0], "-b", label="without beta loss")
+    plt.plot(meta_beta_history[0], "-r", label="with beta loss")
+    plt.plot(meta_history_wob[1], "--b", label="without beta val loss")
+    plt.plot(meta_beta_history[1], "--r", label="with beta val loss")
     plt.legend(loc="upper left")
     plt.title('Meta Training History Compare')
     plt.show()

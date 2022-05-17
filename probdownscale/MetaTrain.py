@@ -7,7 +7,7 @@ from random import sample
 
 class MetaSGD:
     def __init__(self, target_model, target_loss, meta_optimizer, inner_step, inner_optimizer, task_extractor,
-                 meta_loss=None, meta_lr=0.005):
+                meta_lr=0.005):
         '''
         :param target_model:
         :param target_loss:
@@ -21,7 +21,6 @@ class MetaSGD:
 
         self.meta_model = target_model
         self.loss = target_loss
-        self.meta_loss = meta_loss
         self.meta_optimizer = meta_optimizer
         self.inner_step = inner_step
         self.inner_optimizer = inner_optimizer
@@ -30,8 +29,9 @@ class MetaSGD:
         self.seen_locations = dict()
         self.meta_lr = meta_lr
         self.beta_history = []
+        self.val_history = []
 
-    def _train_on_batch(self, batch_size=None, inner_rate_f=None, beta_function=None, use_test_for_meta=True,
+    def _train_on_batch(self, batch_size=None, inner_rate_f=None, beta_function=None,
                         locations=None, covariance_function=None, distance_function=None):
         """
 
@@ -95,33 +95,17 @@ class MetaSGD:
 
             # save the weights after inner loop
             task_weights.append(self.meta_model.get_weights())
-
+        
         with tf.GradientTape() as para_tape: # ValueError: No gradients provided for any variable:
             # calculate the test loss
-            if use_test_for_meta:
-                for i, (test_X, test_Y) in enumerate(zip(meta_test_X, meta_test_Y)):
-                    # load the trained weight after inner loop
-                    self.meta_model.set_weights(task_weights[i])
+            for i, (train_X, train_Y) in enumerate(zip(meta_train_X, meta_train_Y)):
+                # load the trained weight after inner loop
+                self.meta_model.set_weights(task_weights[i])
 
-                    Y_hat = self.meta_model(test_X, training=True)
-                    if self.meta_loss:
-                        loss = self.meta_loss(test_Y, Y_hat)
-                    else:
-                        loss = self.loss(test_Y, Y_hat)
-                    loss = tf.reduce_mean(loss)
-                    batch_loss.append(loss)
-            else:
-                for i, (train_X, train_Y) in enumerate(zip(meta_train_X, meta_train_Y)):
-                    # load the trained weight after inner loop
-                    self.meta_model.set_weights(task_weights[i])
-
-                    Y_hat = self.meta_model(train_X, training=True)
-                    if self.meta_loss:
-                        loss = self.meta_loss(train_Y, Y_hat)
-                    else:
-                        loss = self.loss(train_Y, Y_hat)
-                    loss = tf.reduce_mean(loss)
-                    batch_loss.append(loss)
+                Y_hat = self.meta_model(train_X, training=True)
+                loss = self.loss(train_Y, Y_hat)
+                loss = tf.reduce_mean(loss)
+                batch_loss.append(loss)
             mean_loss = tf.reduce_mean(batch_loss)
             grads_para = para_tape.gradient(mean_loss, self.meta_model.trainable_variables)
             # grads_alpha = alpha_tape.gradient(mean_loss, self.alpha)
@@ -133,37 +117,57 @@ class MetaSGD:
             print('Meta lr:', self.meta_optimizer.learning_rate)
             print('Base lr:', self.inner_optimizer.learning_rate)
             self.meta_optimizer.apply_gradients(zip(grads_para, self.meta_model.trainable_variables))
+            # validation loss
+            val_loss = []
+            for i, (test_X, test_Y) in enumerate(zip(meta_test_X, meta_test_Y)):
+
+                Y_hat = self.meta_model(test_X)
+                loss = self.loss(test_Y, Y_hat)
+                loss = tf.reduce_mean(loss)
+                val_loss.append(loss)
+            val_loss = tf.reduce_mean(val_loss)
             # self.meta_optimizer.apply_gradients(zip(grads_alpha, self.alpha))
             # print(batch_loss)
         #print(self.alpha)
-        return mean_loss.numpy()
+        return mean_loss.numpy(), val_loss.numpy()
 
     def meta_fit(self, epochs, batch_size, basic_train=True, bootstrap_train=True, bootstrap_step=10,
-                 use_test_for_meta=True, randomize=True, beta_function=None, covariance_function=None,
+                randomize=True, beta_function=None, covariance_function=None,
                  distance_function=None):
+        best_loss = float('inf')
+        best_weights = self.meta_model.get_weights()
         # train over all task that cover the study domain
         all_tasks = self.task_extractor.get_grid_locations()
-        if randomize:
-            all_tasks = sample(all_tasks, len(all_tasks))
+
 
         for i in range(epochs):
+            if randomize:
+                all_tasks = sample(all_tasks, len(all_tasks))
+
             if basic_train:
                 for step in range((len(all_tasks)//batch_size)):
                     locations = all_tasks[step*batch_size:(step+1)*batch_size]
-                    loss = self._train_on_batch(locations=locations, use_test_for_meta=use_test_for_meta,
+                    loss, val_loss = self._train_on_batch(locations=locations, 
                                                 beta_function=beta_function, covariance_function=covariance_function,
                                                 distance_function=distance_function
                                                 )
                     self.history.append(loss)
-                    print('Epoch:', i+1, '/', epochs, ' Basic training step: ', step+1, '/', len(all_tasks)//batch_size, 'loss: ', loss)
+                    self.val_history.append(val_loss)
+                    print('Epoch:', i+1, '/', epochs, ' Basic training step: ', step+1, '/', len(all_tasks)//batch_size, 
+                          'loss: ', loss, 'val loss: ', val_loss)
             if bootstrap_train:
                 for step in range(bootstrap_step):
-                    loss = self._train_on_batch(batch_size=batch_size, use_test_for_meta=use_test_for_meta,
+                    loss, val_loss = self._train_on_batch(batch_size=batch_size, 
                                                 beta_function=beta_function, covariance_function=covariance_function,
                                                 distance_function=distance_function)
                     self.history.append(loss)
-                    print('Epoch:', i+1, '/', epochs, 'Bootstrap training step:', step+1, '/', bootstrap_step, 'loss: ', loss)
-        return self.history, self.beta_history
+                    self.val_history.append(val_loss)
+                    if val_loss < best_loss:
+                        best_weights = self.meta_model.get_weights()
+                    print('Epoch:', i+1, '/', epochs, 'Bootstrap training step:', step+1, '/', bootstrap_step, 'loss: ',
+                          loss, 'val loss: ', val_loss)
+            self.meta_model.set_weights(best_weights)
+        return self.history, self.val_history, self.beta_history
 
     def save_meta_weights(self, weights_name):
         self.meta_model.save_weights(weights_name)
