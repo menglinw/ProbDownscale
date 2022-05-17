@@ -175,7 +175,8 @@ def covariance_function(h, phi=0.5):
 def distance_function(loc1, loc2):
     return sqrt((loc1[0] - loc2[0])**2 + (loc1[1] - loc2[1])**2)
 
-def beta_function(meta_rate, batch_locations, seen_locations, covariance_function, distance_function):
+def beta_function(meta_rate, batch_locations, seen_locations, covariance_function, distance_function, decay_rate=1):
+    # decay_rate: 1-0, larger -> faster decay
     batch_size = len(batch_locations)
     seen_size = len(seen_locations.items())
     if seen_size == 0:
@@ -187,7 +188,7 @@ def beta_function(meta_rate, batch_locations, seen_locations, covariance_functio
             temp += cov * (1 + log(n))
     mean_cov = temp/(batch_size*sum(list(seen_locations.values())))
     cov_factor = -log(mean_cov)
-    bsize_factor = exp((batch_size/seen_size)**0.3)
+    bsize_factor = exp((batch_size/seen_size)**decay_rate) - 1
     print('mean cov:', mean_cov)
     print('covariance factor:', cov_factor)
     print('batch size factor:', bsize_factor)
@@ -195,7 +196,7 @@ def beta_function(meta_rate, batch_locations, seen_locations, covariance_functio
     return lr
 
 
-def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, loss, prob=True, n_epochs=20, batch_size=20):
+def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, loss, prob=True, n_epochs=5, batch_size=20):
     # Prob Model Training
     prob_meta_model = model_generator(components, n_lag, task_dim, prob=prob)
 
@@ -242,7 +243,7 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
     if prob:
         plt.savefig('../../Results/Meta_train_prob_compare_prob.jpg')
     else:
-        plt.savefig('../../Results/Meta_train_prob_compare_prob.jpg')
+        plt.savefig('../../Results/Meta_train_prob_compare.jpg')
 
 print('Now doing prob meta training')
 start = time.time()
@@ -251,5 +252,6 @@ print('Prob Meta Training:', (time.time() - start)/60, ' mins')
 
 print('Now doing meta training')
 start = time.time()
-meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.005, loss=tf.keras.losses.MeanAbsoluteError(), prob=False, n_epochs=10, batch_size=10)
+meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.005, loss=tf.keras.losses.MeanAbsoluteError(),
+             prob=False, n_epochs=10, batch_size=10)
 print('Meta Training:', (time.time() - start)/60, ' mins')
