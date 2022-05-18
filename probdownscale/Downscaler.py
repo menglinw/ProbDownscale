@@ -32,7 +32,7 @@ class Downscaler():
                 l_data[:, i, j] = self.l_data[:, l_lat_idx, l_lon_idx]
         return l_data
 
-    def downscale(self, fine_tune_epochs, optimizer):
+    def downscale(self, fine_tune_epochs, optimizer, prob, callbacks=None):
         # TODO: need to debug
         # initialize the meta model
         self.meta_model.compile(optimizer=optimizer, loss=self.loss)
@@ -50,14 +50,13 @@ class Downscaler():
         for location in locations:
             # initial the meta model
             self.meta_model.set_weights(self.meta_weights)
-            temp = self._task_downscaler(location, epochs=fine_tune_epochs)
+            temp = self._task_downscaler(location, epochs=fine_tune_epochs, prob=prob, callbacks=callbacks)
             lat_index = list(self.task_extractor.h_lats).index(location[0])
             lon_index = list(self.task_extractor.h_lons).index(location[1])
             downscaled_data[:, lat_index:(lat_index+self.task_dim[0]), lon_index:(lon_index+self.task_dim[1])] = temp
         return downscaled_data
 
-    def _task_downscaler(self, location, epochs):
-        ## TODO: need to debug
+    def _task_downscaler(self, location, epochs, prob, callbacks=None):
         train_x, train_y, _, _, location, init = self.task_extractor._get_one_random_task(is_random=False, record=False,
                                                                                     lat_lon=location, use_all_data=True,
                                                                                     return_init=True)
@@ -68,16 +67,22 @@ class Downscaler():
 
         # fine tune the meta model with task data
         # the meta_model should be compiled first
-        self.meta_model.fit(train_x, train_y, epochs=epochs)
+        if callbacks:
+            self.meta_model.fit(train_x, train_y, epochs=epochs, callbacks=callbacks)
+        else:
+            self.meta_model.fit(train_x, train_y, epochs=epochs)
 
         # predict several steps
-        pred = self.sequential_predict(self.meta_model, init, l_data, self.l_data.shape[0]-1)
+        pred = self.sequential_predict(self.meta_model, init, l_data, self.l_data.shape[0]-1, prob=prob)
         return pred
 
-    def slice_parameter_vectors(self, parameter_vector, no_parameters):
-        return [parameter_vector[:, i *self.components: (i + 1)*self.components] for i in range(no_parameters)]
+    def slice_parameter_vectors(self, parameter_vector):
+        alphas = parameter_vector[:, :self.components]
+        mus = parameter_vector[:, self.components:(self.components * (self.task_dim[0] * self.task_dim[1] + 1))]
+        sigmas = parameter_vector[:, (self.components * (self.task_dim[0] * self.task_dim[1] + 1)):]
+        return alphas, mus, sigmas
 
-    def sequential_predict(self, model, init_data, l_data, predict_steps):
+    def sequential_predict(self, model, init_data, l_data, predict_steps, prob):
         # TODO: need to debug
         init_1, init_3 = init_data
         init_2 = np.expand_dims(l_data[0], 0)
@@ -86,14 +91,21 @@ class Downscaler():
             #print('Input 2 shape:', init_2.shape)
             #print('Input 3 shape:', init_3.shape)
             y_hat = model.predict([init_1[:, -self.n_lag:], init_2, init_3])
-            alpha, mu, sigma = self.slice_parameter_vectors(y_hat, 3)
-            MDN_Yhat = tfd.MixtureSameFamily(
-                mixture_distribution=tfd.Categorical(probs=alpha),
-                components_distribution=tfd.Gamma(
-                    concentration=mu, rate=sigma))
+            if prob:
+                alphas, mus, sigmas = self.slice_parameter_vectors(y_hat)
+                mus = tf.reshape(mus, (tf.shape(mus)[0], self.components, self.task_dim[0], self.task_dim[1]))
+                sigmas = tf.reshape(sigmas, (tf.shape(sigmas)[0], self.components, self.task_dim[0], self.task_dim[1]))
+                MDN_Yhat = tfd.MixtureSameFamily(
+                    mixture_distribution=tfd.Categorical(probs=alphas),
+                    components_distribution=tfd.Independent(tfd.Gamma(concentration=mus, rate=sigmas),
+                                                            reinterpreted_batch_ndims=2))
 
-            Yhat = MDN_Yhat.sample(np.prod(self.task_dim)).numpy().reshape(self.task_dim)
-            Yhat = np.expand_dims(Yhat, [0,1, -1])
+                Yhat = MDN_Yhat.sample().numpy()
+            else:
+                Yhat = y_hat
+            Yhat = np.expand_dims(Yhat, [0, -1])
+            #print('init_1:', init_1.shape)
+            #print('Y hat:', Yhat.shape)
             init_1 = np.concatenate([init_1, Yhat], axis=1)
             init_2 = np.expand_dims(l_data[i+1], 0)
             init_3 = np.remainder(init_3+1, 365)

@@ -242,6 +242,7 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
     plt.legend(loc="upper left")
     plt.title('Meta Training History Compare')
     plt.show()
+    plt.close()
     if prob:
         plt.savefig('../../Results/Meta_train_prob_compare_prob.jpg')
     else:
