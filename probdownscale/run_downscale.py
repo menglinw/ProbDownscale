@@ -180,7 +180,7 @@ inner_step = 1
 inner_optimizer = tf.keras.optimizers.Adam(0.001)
 
 meta_learner = MetaSGD(meta_model, res_loss,  meta_optimizer, inner_step, inner_optimizer, taskextractor_meta, meta_lr=0.001)
-meta_learner.load_meta_weights('../../Result/meta_weights_wb_prob')
+meta_learner.load_meta_weights('../../Results/meta_weights_wb_prob')
 
 def scheduler(epoch, lr):
     if epoch <= 10:
@@ -194,7 +194,7 @@ callback = tf.keras.callbacks.LearningRateScheduler(scheduler)
 downscaler = Downscaler(meta_learner, components, test_m_data)
 optimizer = tf.keras.optimizers.Adam()
 downscaled_data = downscaler.downscale(30, optimizer, prob=True, callbacks=callback)
-downscaled_data.save('../../Result/downscaled_data_prob')
+downscaled_data.save('../../Results/downscaled_data_prob')
 print('Prob Downscale Time:', (time.time() - start)/60, 'mins')
 
 start = time.time()
@@ -211,7 +211,7 @@ inner_optimizer = tf.keras.optimizers.Adam(0.001)
 
 meta_learner = MetaSGD(meta_model, tf.keras.losses.MeanAbsoluteError(),  meta_optimizer, inner_step, inner_optimizer,
                        taskextractor_meta, meta_lr=0.001)
-meta_learner.load_meta_weights('../../Result/meta_weights_wob')
+meta_learner.load_meta_weights('../../Results/meta_weights_wob')
 
 
 def scheduler(epoch, lr):
@@ -226,5 +226,5 @@ callback = tf.keras.callbacks.LearningRateScheduler(scheduler)
 downscaler = Downscaler(meta_learner, components, test_m_data)
 optimizer = tf.keras.optimizers.Adam()
 downscaled_data = downscaler.downscale(30, optimizer, prob=False, callbacks=callback)
-downscaled_data.save('../../Result/downscaled_data_det')
+downscaled_data.save('../../Results/downscaled_data_det')
 print('Det Downscale Time:', (time.time() - start)/60, 'mins')
