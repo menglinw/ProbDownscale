@@ -172,3 +172,6 @@ class MetaSGD:
     def save_meta_weights(self, weights_name):
         self.meta_model.save_weights(weights_name)
 
+    def load_meta_weights(self, weight_path):
+        self.meta_model.load_weights(weight_path)
+
