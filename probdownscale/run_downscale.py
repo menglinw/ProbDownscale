@@ -188,13 +188,13 @@ def scheduler(epoch, lr):
     elif epoch <= 20 and epoch > 10:
         return 0.000001
     else:
-        return 0.00001
+        return 0.0000001
 callback = tf.keras.callbacks.LearningRateScheduler(scheduler)
 #meta_learner = MetaSGD(fine_tune_model, res_loss,  meta_optimizer, inner_step, inner_optimizer, taskextractor_meta, meta_lr=0.002)
 downscaler = Downscaler(meta_learner, components, test_m_data)
 optimizer = tf.keras.optimizers.Adam()
 downscaled_data = downscaler.downscale(20, optimizer, prob=True, callbacks=callback)
-np.save(downscaled_data, r'../../Results/downscaled_data_prob')
+np.save(r'../../Results/downscaled_data_prob', downscaled_data)
 print('Prob Downscale Time:', (time.time() - start)/60, 'mins')
 
 start = time.time()
@@ -226,5 +226,5 @@ callback = tf.keras.callbacks.LearningRateScheduler(scheduler)
 downscaler = Downscaler(meta_learner, components, test_m_data)
 optimizer = tf.keras.optimizers.Adam()
 downscaled_data = downscaler.downscale(20, optimizer, prob=False, callbacks=callback)
-np.save(downscaled_data, r'../../Results/downscaled_data_det')
+np.save(r'../../Results/downscaled_data_det', downscaled_data)
 print('Det Downscale Time:', (time.time() - start)/60, 'mins')
