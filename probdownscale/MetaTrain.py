@@ -121,7 +121,7 @@ class MetaSGD:
             val_loss = []
             for i, (test_X, test_Y) in enumerate(zip(meta_test_X, meta_test_Y)):
 
-                Y_hat = self.meta_model(test_X)
+                Y_hat = self.meta_model(test_X, training=False)
                 loss = self.loss(test_Y, Y_hat)
                 loss = tf.reduce_mean(loss)
                 val_loss.append(loss)
@@ -143,7 +143,7 @@ class MetaSGD:
         for i in range(epochs):
             if randomize:
                 all_tasks = sample(all_tasks, len(all_tasks))
-
+            #print(len(all_tasks))
             if basic_train:
                 for step in range((len(all_tasks)//batch_size)):
                     locations = all_tasks[step*batch_size:(step+1)*batch_size]

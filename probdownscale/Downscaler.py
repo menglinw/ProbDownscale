@@ -40,8 +40,8 @@ class Downscaler():
 
         # iter over task to downscale
         downscaled_data = np.zeros((self.l_data.shape[0]-1,
-                                    self.task_extractor.h_data.shape[1],
-                                    self.task_extractor.h_data.shape[2]))
+                                        self.task_extractor.h_data.shape[1],
+                                        self.task_extractor.h_data.shape[2]))
 
         lats = [self.task_extractor.h_lats[int(i*self.task_dim[0])] for i in range(int(len(self.task_extractor.h_lats)//self.task_dim[0]))]
 
@@ -53,7 +53,10 @@ class Downscaler():
             temp = self._task_downscaler(location, epochs=fine_tune_epochs, prob=prob, callbacks=callbacks)
             lat_index = list(self.task_extractor.h_lats).index(location[0])
             lon_index = list(self.task_extractor.h_lons).index(location[1])
-            downscaled_data[:, lat_index:(lat_index+self.task_dim[0]), lon_index:(lon_index+self.task_dim[1])] = temp
+            if self.task_dim != [1, 1]:
+                downscaled_data[:, lat_index:(lat_index+self.task_dim[0]), lon_index:(lon_index+self.task_dim[1])] = temp
+            else:
+                downscaled_data[:, lat_index, lon_index] = temp
         return downscaled_data
 
     def _task_downscaler(self, location, epochs, prob, callbacks=None):
@@ -85,7 +88,10 @@ class Downscaler():
     def sequential_predict(self, model, init_data, l_data, predict_steps, prob):
         # TODO: need to debug
         init_1, init_3 = init_data
+        #print('shape 1:', init_1.shape)
         init_2 = np.expand_dims(l_data[0], 0)
+        #print('shape 2:', init_2.shape)
+        #print('shape 3:', init_3.shape)
         for i in range(predict_steps):
             #print('Input 1 shape:', init_1[:, -self.n_lag:].shape)
             #print('Input 2 shape:', init_2.shape)
@@ -93,22 +99,32 @@ class Downscaler():
             y_hat = model.predict([init_1[:, -self.n_lag:], init_2, init_3])
             if prob:
                 alphas, mus, sigmas = self.slice_parameter_vectors(y_hat)
-                mus = tf.reshape(mus, (tf.shape(mus)[0], self.components, self.task_dim[0], self.task_dim[1]))
-                sigmas = tf.reshape(sigmas, (tf.shape(sigmas)[0], self.components, self.task_dim[0], self.task_dim[1]))
-                MDN_Yhat = tfd.MixtureSameFamily(
-                    mixture_distribution=tfd.Categorical(probs=alphas),
-                    components_distribution=tfd.Independent(tfd.Gamma(concentration=mus, rate=sigmas),
-                                                            reinterpreted_batch_ndims=2))
+                if self.task_dim != [1, 1]:
+                    mus = tf.reshape(mus, (tf.shape(mus)[0], self.components, self.task_dim[0], self.task_dim[1]))
+                    sigmas = tf.reshape(sigmas, (tf.shape(sigmas)[0], self.components, self.task_dim[0], self.task_dim[1]))
+                    MDN_Yhat = tfd.MixtureSameFamily(
+                        mixture_distribution=tfd.Categorical(probs=alphas),
+                        components_distribution=tfd.Independent(tfd.Gamma(concentration=mus, rate=sigmas),
+                                                                reinterpreted_batch_ndims=2))
+                else:
+                    MDN_Yhat = tfd.MixtureSameFamily(
+                        mixture_distribution=tfd.Categorical(probs=alphas),
+                        components_distribution=tfd.Gamma(concentration=mus, rate=sigmas))
 
                 Yhat = MDN_Yhat.sample().numpy()
+                Yhat = Yhat/100
+                Yhat = np.expand_dims(Yhat, [0, -1])
             else:
                 Yhat = y_hat
-            Yhat = np.expand_dims(Yhat, [0, -1])
+
+
             #print('init_1:', init_1.shape)
             #print('Y hat:', Yhat.shape)
             init_1 = np.concatenate([init_1, Yhat], axis=1)
             init_2 = np.expand_dims(l_data[i+1], 0)
             init_3 = np.remainder(init_3+1, 365)
-        
-        return init_1[0, self.n_lag:, 0, :, :]
+        if self.task_dim != [1, 1]:
+            return init_1[0, self.n_lag:, 0, :, :]
+        else:
+            return init_1[0, self.n_lag:, 0]
 

@@ -14,8 +14,8 @@ class TaskExtractor():
         # initialize all arguments
         # high and low resolution data
         self.h_data, self.l_data = data
-        self.h_data = ((self.h_data - self.h_data.min())/(self.h_data.max()- self.h_data.min()))*10
-        self.l_data = ((self.l_data - self.l_data.min())/(self.l_data.max() - self.l_data.min()))*10
+        self.h_data = ((self.h_data - self.h_data.min())/(self.h_data.max()- self.h_data.min()))
+        self.l_data = ((self.l_data - self.l_data.min())/(self.l_data.max() - self.l_data.min()))
         # high and low resolution latitude and longitude
         self.h_lats, self.h_lons, self.l_lats, self.l_lons = lats_lons
         # task dimension
@@ -31,8 +31,8 @@ class TaskExtractor():
         self.n_lag = int(n_lag)
 
         # all available topleft index of tasks
-        avlb_lats = self.h_lats[:-(self.task_dim[0]-1)]
-        avlb_lons = self.h_lons[:-(self.task_dim[1]-1)]
+        avlb_lats = self.h_lats[:len(self.h_lats)-(self.task_dim[0]-1)]
+        avlb_lons = self.h_lons[:len(self.h_lons)-(self.task_dim[1]-1)]
         self.avlb_location = list(product(avlb_lats, avlb_lons))
         # collect all topleft index we have seen
         self.seen_location = dict()
@@ -93,13 +93,21 @@ class TaskExtractor():
         #print('Train Y Index:', train_y_day)
         # flatten the data
         # output dim (time, channel, rows, cols)
-        train_y = h_data[train_y_day]
-        test_y = h_data[test_y_day]
+        if self.task_dim == [1, 1]:
+            train_y = np.squeeze(h_data[train_y_day], (-1, -2))
+            test_y = np.squeeze(h_data[test_y_day], (-1, -2))
+        else:
+            train_y = h_data[train_y_day]
+            test_y = h_data[test_y_day]
 
         train_x_1, train_x_2, train_x_3 = self._get_inputX(train_y_day, h_data, l_data)
         test_x_1, test_x_2, test_x_3 = self._get_inputX(test_y_day, h_data, l_data)
         init_1 = h_data[-self.n_lag:]
-        init_1 = np.expand_dims(init_1, [0, -1])
+        if self.task_dim != [1, 1]:
+            init_1 = np.expand_dims(init_1, [0, -1])
+        else:
+            init_1 = np.expand_dims(init_1, 0)
+            init_1 = np.squeeze(init_1, -1)
         init_3 = np.remainder(np.array([h_data.shape[0]]), 365)
         if return_init:
             return [train_x_1, train_x_2, train_x_3], train_y, [test_x_1, test_x_2, test_x_3], test_y, \
@@ -117,7 +125,10 @@ class TaskExtractor():
             train_x_1[i, :, :, :, :] = np.expand_dims(h_data[int(indx-self.n_lag):int(indx)], -1)
         train_x_2 = l_data[y_index]
         train_x_3 = np.remainder(np.array(y_index), 365)
-        return train_x_1, train_x_2, train_x_3
+        if self.task_dim==[1, 1]:
+            return np.squeeze(train_x_1, (-1, -2)), np.squeeze(train_x_2, -1), train_x_3
+        else:
+            return train_x_1, train_x_2, train_x_3
 
     def get_random_tasks(self, n_task=None, record=True, locations=None):
         if not locations:
@@ -141,8 +152,8 @@ class TaskExtractor():
 
     def get_grid_locations(self):
         # all available topleft index of tasks
-        avlb_lats = self.h_lats[:-(self.task_dim[0]-1)]
-        avlb_lons = self.h_lons[:-(self.task_dim[1]-1)]
+        avlb_lats = self.h_lats[:len(self.h_lats)-(self.task_dim[0]-1)]
+        avlb_lons = self.h_lons[:len(self.h_lons)-(self.task_dim[1]-1)]
         avlb_lats = [avlb_lats[i*self.task_dim[0]] for i in range(int(len(avlb_lats)/self.task_dim[0]))]
         avlb_lons = [avlb_lons[i*self.task_dim[1]] for i in range(int(len(avlb_lons)/self.task_dim[1]))]
         return list(product(avlb_lats, avlb_lons))
