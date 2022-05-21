@@ -27,17 +27,17 @@ g06_data = nc.Dataset(file_path_g_06)
 m_data_nc = nc.Dataset(file_path_m)
 
 # define lat&lon of MERRA, G5NR and mete
-M_lons = m_data_nc.variables['lon'][:30]
+M_lons = m_data_nc.variables['lon'][:10]
 # self.M_lons = (M_lons-M_lons.mean())/M_lons.std()
-M_lats = m_data_nc.variables['lat'][:30]
+M_lats = m_data_nc.variables['lat'][:10]
 # self.M_lats = (M_lats-M_lats.mean())/M_lats.std()
-G_lons = g05_data.variables['lon'][:50]
+G_lons = g05_data.variables['lon'][:20]
 # self.G_lons = (G_lons-G_lons.mean())/G_lons.std()
-G_lats = g05_data.variables['lat'][:50]
+G_lats = g05_data.variables['lat'][:20]
 
 # extract target data
-g_data = np.concatenate((g05_data.variables[target_var][:, :50, :50], g06_data.variables[target_var][:, :50, :50]), axis=0)
-m_data = m_data_nc.variables[target_var][5*365:7*365, :30, :30]
+g_data = np.concatenate((g05_data.variables[target_var][:, :20, :20], g06_data.variables[target_var][:, :20, :20]), axis=0)
+m_data = m_data_nc.variables[target_var][5*365:7*365, :10, :10]
 
 # split data into traing and test
 train_g_data, test_g_data = g_data[:657], g_data[657:]
@@ -196,7 +196,7 @@ def beta_function(meta_rate, batch_locations, seen_locations, covariance_functio
     return lr
 
 
-def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, loss, prob=True, n_epochs=5, batch_size=20):
+def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, loss, prob=True, n_epochs=5, batch_size=10):
     # Prob Model Training
     prob_meta_model = model_generator(components, n_lag, task_dim, prob=prob)
 
@@ -218,9 +218,9 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
                                               covariance_function=covariance_function,
                                               distance_function=distance_function)
     if prob:
-        meta_learner.save_meta_weights(r"../../Results/meta_weights_wb_prob")
+        meta_learner.save_meta_weights(r"../../Results/image_smallarea_results/meta_weights_wb_prob")
     else:
-        meta_learner.save_meta_weights(r"../../Results/meta_weights_wb")
+        meta_learner.save_meta_weights(r"../../Results/image_smallarea_results/meta_weights_wb")
 
 
     prob_meta_model_wob = model_generator(components, n_lag, task_dim, prob=prob)
@@ -231,10 +231,11 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
     meta_history_wob = meta_learner_wob.meta_fit(n_epochs, batch_size=batch_size, basic_train=True,
                                                  bootstrap_train=True, randomize=True)
     if prob:
-        meta_learner_wob.save_meta_weights(r"../../Results/meta_weights_wob_prob")
+        meta_learner_wob.save_meta_weights(r"../../Results/image_smallarea_results/meta_weights_wob_prob")
     else:
-        meta_learner_wob.save_meta_weights(r"../../Results/meta_weights_wob")
+        meta_learner_wob.save_meta_weights(r"../../Results/image_smallarea_results/meta_weights_wob")
 
+    plt.figure()
     plt.plot(meta_history_wob[0], "-b", label="without beta loss")
     plt.plot(meta_beta_history[0], "-r", label="with beta loss")
     plt.plot(meta_history_wob[1], "--b", label="without beta val loss")
@@ -244,9 +245,9 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
     plt.show()
     plt.close()
     if prob:
-        plt.savefig('../../Results/Meta_train_prob_compare_prob.jpg')
+        plt.savefig('../../Results/image_smallarea_results/Meta_train_prob_compare_prob.jpg')
     else:
-        plt.savefig('../../Results/Meta_train_prob_compare.jpg')
+        plt.savefig('../../Results/image_smallarea_results/Meta_train_prob_compare.jpg')
 
 print('Now doing prob meta training')
 start = time.time()
