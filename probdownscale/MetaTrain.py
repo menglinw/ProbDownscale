@@ -169,8 +169,8 @@ class MetaSGD:
             self.meta_model.set_weights(best_weights)
         return self.history, self.val_history, self.beta_history
 
-    def save_meta_weights(self, weights_name):
-        self.meta_model.save_weights(weights_name)
+    def save_meta_weights(self, weights_path):
+        self.meta_model.save_weights(weights_path)
 
     def load_meta_weights(self, weight_path):
         self.meta_model.load_weights(weight_path)

@@ -14,8 +14,8 @@ class TaskExtractor():
         # initialize all arguments
         # high and low resolution data
         self.h_data, self.l_data = data
-        self.h_data = ((self.h_data - self.h_data.min())/(self.h_data.max()- self.h_data.min()))
-        self.l_data = ((self.l_data - self.l_data.min())/(self.l_data.max() - self.l_data.min()))
+        self.h_data = ((self.h_data - self.h_data.min())/(self.h_data.max()- self.h_data.min()))*100
+        self.l_data = ((self.l_data - self.l_data.min())/(self.l_data.max() - self.l_data.min()))*100
         # high and low resolution latitude and longitude
         self.h_lats, self.h_lons, self.l_lats, self.l_lons = lats_lons
         # task dimension
