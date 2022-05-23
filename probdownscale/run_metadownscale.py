@@ -3,6 +3,7 @@ import sys
 from MetaTrain import MetaSGD
 from TaskExtractor import TaskExtractor
 from Downscaler import Downscaler
+import utils.data_processing as data_processing
 import math
 import numpy as np
 import netCDF4 as nc
@@ -238,7 +239,7 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
     meta_optimizer_wob = tf.keras.optimizers.Adam(meta_lr)
     meta_learner_wob = MetaSGD(prob_meta_model_wob, loss,  meta_optimizer_wob, inner_step, inner_optimizer_wob, taskextractor_meta)
     meta_history_wob = meta_learner_wob.meta_fit(n_epochs, batch_size=batch_size, basic_train=True,
-                                                 bootstrap_train=True, randomize=True)
+                                                 bootstrap_train=False, randomize=True)
     # save weights and history
     meta_learner_wob.save_meta_weights(os.path.join(save_path, "meta_weights_wob_prob"))
     np.save(os.path.join(save_path, 'meta_history_wob'), np.array(meta_history_wob))
@@ -257,7 +258,7 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
 
 print('Now doing prob meta training')
 start = time.time()
-meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.0005, loss=res_loss, beta_function=beta_function,
+meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.001, loss=res_loss, beta_function=beta_function,
              covariance_function=covariance_function, distance_function=distance_function, save_path=save_path, n_epochs=1, batch_size=10)
 print('Prob Meta Training:', (time.time() - start)/60, ' mins')
 
@@ -268,13 +269,33 @@ downscaler = Downscaler(meta_learner, components, test_m_data)
 optimizer = tf.keras.optimizers.Adam()
 def scheduler(epoch, lr):
     if epoch <= 10:
-        return 0.01
+        return 0.001
     elif epoch <= 30 and epoch > 10:
-        return 0.005
+        return 0.0005
     else:
-        return 0.0001
+        return 0.00001
 lr_scheduler= tf.keras.callbacks.LearningRateScheduler(scheduler)
 early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
 downscaled_data = downscaler.downscale(100, optimizer, prob=True, callbacks=[lr_scheduler, early_stopping])
 np.save(os.path.join(save_path, 'downscaled_data'), downscaled_data)
 print('Downscale Time:', (time.time() - start)/60, 'mins')
+
+def image_evaluate(pred_data, true_data):
+    if pred_data.shape != true_data.shape:
+        print('Please check data consistency!')
+        raise ValueError
+    length = np.prod(pred_data.shape[1:])
+    r2_list = np.zeros(pred_data.shape[0])
+    rmse_list = np.zeros(pred_data.shape[0])
+    filter = ~np.isnan(pred_data[0].reshape(length))
+    for i in range(pred_data.shape[0]):
+        r2_list[i],_ = data_processing.rsquared(pred_data[i].reshape(length)[filter], true_data[i].reshape(length)[filter])
+        rmse_list[i] = np.nanmean(np.square(pred_data[i] - true_data[i]))
+    return rmse_list, r2_list
+
+rmse_list, r2_list = image_evaluate(downscaled_data, test_g_data)
+plt.figure()
+#plt.plot(rmse_list/100, "-b",label='RMSE')
+plt.plot(r2_list, "-r",label='R2')
+plt.legend()
+plt.savefig(os.path.join(save_path, 'downscale_R2.jpg'))
