@@ -87,9 +87,9 @@ G_lats = G_lats[latmin_ind-1:latmax_ind+1]
 G_lons = G_lons[lonmin_ind:lonmax_ind+2]
 
 # take a subset
-g_data = g_data[:, :30, :30]
-G_lats = G_lats[:30]
-G_lons = G_lons[:30]
+#g_data = g_data[:, :30, :30]
+#G_lats = G_lats[:30]
+#G_lons = G_lons[:30]
 
 # split data into traing and test
 train_g_data, test_g_data = g_data[:657], g_data[657:]
@@ -258,11 +258,11 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
 
 print('Now doing prob meta training')
 start = time.time()
-meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.001, loss=res_loss, beta_function=beta_function,
+meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.0005, loss=res_loss, beta_function=beta_function,
              covariance_function=covariance_function, distance_function=distance_function, save_path=save_path, n_epochs=10, batch_size=10)
 print('Prob Meta Training:', (time.time() - start)/60, ' mins')
 
-
+'''
 print('Now doing downscaling')
 start = time.time()
 downscaler = Downscaler(meta_learner, components, test_m_data)
@@ -299,3 +299,4 @@ plt.figure()
 plt.plot(r2_list, "-r",label='R2')
 plt.legend()
 plt.savefig(os.path.join(save_path, 'downscale_R2.jpg'))
+'''
