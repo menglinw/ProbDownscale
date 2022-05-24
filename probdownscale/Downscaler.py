@@ -116,7 +116,7 @@ class Downscaler():
                         components_distribution=tfd.Gamma(concentration=mus, rate=sigmas))
 
                 Yhat = MDN_Yhat.sample().numpy()
-                Yhat = Yhat/100
+                Yhat = Yhat
                 Yhat = np.expand_dims(Yhat, [0, -1])
             else:
                 Yhat = y_hat
