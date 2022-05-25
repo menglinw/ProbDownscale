@@ -45,6 +45,13 @@ components=500
 
 # save path
 save_path = sys.argv[1]
+
+# probabilistic model
+if sys.argv[2]=='prob':
+    prob = True
+else:
+    prob = False
+
 # read data
 g05_data = nc.Dataset(file_path_g_05)
 g06_data = nc.Dataset(file_path_g_06)
@@ -68,8 +75,8 @@ def normalize(data):
     return (data - data.min())/(data.max() - data.min())
 
 
-g_data = normalize(g_data)*100
-m_data = normalize(m_data)*100
+g_data = normalize(np.log(g_data))
+m_data = normalize(np.log(m_data))
 
 country_shape = gpd.read_file(file_path_country[0])
 for country_path in file_path_country[1:]:
@@ -135,43 +142,39 @@ def model_generator(num_components, n_lag, task_dim, prob=True):
 
     X = layers.ConvLSTM2D(filters=50, kernel_size=(2, 2), activation=layers.LeakyReLU(), padding='same',
                           return_sequences=True)(input1)
-    X = layers.ConvLSTM2D(filters=50, kernel_size=(2, 2), activation=layers.LeakyReLU(), return_sequences=True)(X)
-    X = layers.ConvLSTM2D(filters=50, kernel_size=(1, 1), activation=layers.LeakyReLU())(X)
+    X = layers.ConvLSTM2D(filters=50, kernel_size=(2, 2), activation=layers.LeakyReLU(), padding='same',
+                          return_sequences=True)(X)
+    X = layers.ConvLSTM2D(filters=60, kernel_size=(2, 2), activation=layers.LeakyReLU())(X)
     X = layers.Flatten()(X)
-    X = layers.Dense(128)(X)
-    X = layers.LeakyReLU(alpha=0.05)(X)
-    X = layers.BatchNormalization()(X)
-    X = layers.Dense(128)(X)
-    X = layers.LeakyReLU(alpha=0.05)(X)
 
-    X1 = layers.Conv2D(20, (3, 3), activation='relu')(input2)
+    X1 = layers.Conv2D(20, (2, 2), activation='relu')(input2)
     X1 = layers.Flatten()(X1)
     X2 = layers.BatchNormalization()(input3)
     X = layers.Concatenate()([X, X1, X2])
 
-    X1 = layers.Dense(128)(X)
-    X1 = layers.LeakyReLU(alpha=0.05)(X1)
-    X1 = layers.BatchNormalization()(X1)
-    for nodes in [64, 128, 256, 512, 256, 128, 64, 32, 16, 8]:
-        X1 = layers.Dense(nodes)(X1)
-        X1 = layers.LeakyReLU(alpha=0.05)(X1)
-        X1 = layers.BatchNormalization()(X1)
+    X3 = layers.Dense(128, kernel_initializer="he_normal", use_bias=True)(X)
+    X3 = layers.LeakyReLU(alpha=0.05)(X3)
+    X3 = layers.BatchNormalization()(X3)
+    for nodes in [128, 64, 32]:
+        X3 = layers.Dense(nodes, kernel_initializer="he_normal", use_bias=True)(X3)
+        X3 = layers.LeakyReLU(alpha=0.05)(X3)
+        X3 = layers.BatchNormalization()(X3)
 
-    alphas1 = layers.Dense(num_components, activation="softmax")(X1)
-    mus1 = layers.Dense(num_components * task_dim * task_dim, activation='nnelu')(X1)
-    sigmas1 = layers.Dense(num_components * task_dim * task_dim, activation='nnelu')(X1)
+    alphas1 = layers.Dense(num_components, activation="softmax")(X3)
+    mus1 = layers.Dense(num_components * task_dim * task_dim, activation='nnelu')(X3)
+    sigmas1 = layers.Dense(num_components * task_dim * task_dim, activation='nnelu')(X3)
     output1 = layers.Concatenate()([alphas1, mus1, sigmas1])
 
-    X2 = layers.Dense(128)(X)
-    X2 = layers.LeakyReLU(alpha=0.05)(X2)
-    X2 = layers.BatchNormalization()(X2)
+    X4 = layers.Dense(128, kernel_initializer="he_normal", use_bias=True)(X)
+    X4 = layers.LeakyReLU(alpha=0.05)(X4)
+    X4 = layers.BatchNormalization()(X4)
 
-    for nodes in [64, 128, 256, 128, 64, 32, 16, 8]:
-        X2 = layers.Dense(nodes)(X2)
-        X2 = layers.LeakyReLU(alpha=0.05)(X2)
-        X2 = layers.BatchNormalization()(X2)
+    for nodes in [16] * 10:
+        X4 = layers.Dense(nodes, kernel_initializer="he_normal", use_bias=True)(X4)
+        X4 = layers.LeakyReLU(alpha=0.05)(X4)
+        X4 = layers.BatchNormalization()(X4)
 
-    output2 = layers.Dense(task_dim * task_dim, activation='relu')(X2)
+    output2 = layers.Dense(task_dim * task_dim, activation='relu')(X4)
     output2 = layers.Reshape((task_dim, task_dim))(output2)
 
     if prob:
@@ -208,9 +211,9 @@ def beta_function(meta_rate, batch_locations, seen_locations, covariance_functio
 
 
 def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, loss, beta_function, covariance_function,
-                 distance_function, save_path, n_epochs=5, batch_size=10):
+                 distance_function, save_path, prob, n_epochs=5, batch_size=10):
     # Prob Model Training
-    prob_meta_model = model_generator(components, n_lag, task_dim)
+    prob_meta_model = model_generator(components, n_lag, task_dim, prob=prob)
 
     # define TaskExtractor
 
@@ -229,10 +232,15 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
                                               randomize=True, beta_function=beta_function,
                                               covariance_function=covariance_function,
                                               distance_function=distance_function)
-    # save weights and history
-    meta_learner.save_meta_weights(os.path.join(save_path, "meta_weights_wb_prob"))
-    np.save(os.path.join(save_path, 'meta_history_wb'), np.array(meta_beta_history))
 
+    # save weights and history
+    if prob:
+        meta_learner.save_meta_weights(os.path.join(save_path, "meta_weights_prob"))
+        np.save(os.path.join(save_path, 'meta_history_prob'), np.array(meta_beta_history))
+    else:
+        meta_learner.save_meta_weights(os.path.join(save_path, "meta_weights"))
+        np.save(os.path.join(save_path, 'meta_history'), np.array(meta_beta_history))
+    '''
     # meta train without beta
     prob_meta_model_wob = model_generator(components, n_lag, task_dim)
     inner_optimizer_wob = tf.keras.optimizers.Adam(meta_lr)
@@ -243,23 +251,30 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
     # save weights and history
     meta_learner_wob.save_meta_weights(os.path.join(save_path, "meta_weights_wob_prob"))
     np.save(os.path.join(save_path, 'meta_history_wob'), np.array(meta_history_wob))
+    '''
     # save history plot
     plt.figure()
-    plt.plot(meta_history_wob[0], "-b", label="without beta loss")
+    #plt.plot(meta_history_wob[0], "-b", label="without beta loss")
     plt.plot(meta_beta_history[0], "-r", label="with beta loss")
-    plt.plot(meta_history_wob[1], "--b", label="without beta val loss")
+    #plt.plot(meta_history_wob[1], "--b", label="without beta val loss")
     plt.plot(meta_beta_history[1], "--r", label="with beta val loss")
     plt.legend(loc="upper left")
-    plt.title('Meta Training History')
-    plt.show()
-    plt.savefig(os.path.join(save_path, 'Meta_train_prob_compare_prob.jpg'))
+    if prob:
+        plt.title('MDN Meta Training History')
+        plt.show()
+        plt.savefig(os.path.join(save_path, 'Meta_train_prob_compare_prob.jpg'))
+    else:
+        plt.title('NN Meta Training History')
+        plt.show()
+        plt.savefig(os.path.join(save_path, 'Meta_train_prob_compare.jpg'))
 
     return meta_learner
 
 print('Now doing prob meta training')
 start = time.time()
 meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.0005, loss=res_loss, beta_function=beta_function,
-             covariance_function=covariance_function, distance_function=distance_function, save_path=save_path, n_epochs=10, batch_size=15)
+             covariance_function=covariance_function, distance_function=distance_function, save_path=save_path, prob=prob,
+                            n_epochs=2, batch_size=15)
 print('Prob Meta Training:', (time.time() - start)/60, ' mins')
 
 '''
