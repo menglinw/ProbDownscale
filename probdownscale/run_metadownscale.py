@@ -38,10 +38,10 @@ task_dim = 3
 test_proportion = 0.3
 
 # number of lagging steps
-n_lag = 20
+n_lag = 30
 
 # number of components of MDN
-components=500
+components=50
 
 # save path
 save_path = sys.argv[1]
@@ -122,12 +122,12 @@ def slice_parameter_vectors(parameter_vector):
 
 
 def res_loss(y, parameter_vector):
-    alphas, mus, sigmas = slice_parameter_vectors(parameter_vector)
+    alphas, mus, sigmas= slice_parameter_vectors(parameter_vector)
     mus = tf.reshape(mus, (tf.shape(mus)[0], components, task_dim, task_dim))
     sigmas = tf.reshape(sigmas, (tf.shape(sigmas)[0], components, task_dim, task_dim))
-    gm = tfd.MixtureSameFamily(
+    gm =tfd.MixtureSameFamily(
         mixture_distribution=tfd.Categorical(probs=alphas),
-        components_distribution=tfd.Independent(tfd.Gamma(concentration=mus, rate=sigmas), reinterpreted_batch_ndims=2))
+        components_distribution=tfd.Independent(tfd.Normal(loc=mus, scale=sigmas), reinterpreted_batch_ndims=2) )
     log_likelihood = tf.clip_by_value(gm.log_prob(tf.cast(y, tf.float32)), clip_value_min=-10000, clip_value_max=0)
     return -tf.reduce_mean(log_likelihood)
 
@@ -235,8 +235,8 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
 
     # save weights and history
     if prob:
-        meta_learner.save_meta_weights(os.path.join(save_path, "meta_weights_prob"))
-        np.save(os.path.join(save_path, 'meta_history_prob'), np.array(meta_beta_history))
+        meta_learner.save_meta_weights(os.path.join(save_path, "meta_weights_prob_normal"))
+        np.save(os.path.join(save_path, 'meta_history_prob_normal'), np.array(meta_beta_history))
     else:
         meta_learner.save_meta_weights(os.path.join(save_path, "meta_weights"))
         np.save(os.path.join(save_path, 'meta_history'), np.array(meta_beta_history))
@@ -262,7 +262,7 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
     if prob:
         plt.title('MDN Meta Training History')
         plt.show()
-        plt.savefig(os.path.join(save_path, 'Meta_train_prob_compare_prob.jpg'))
+        plt.savefig(os.path.join(save_path, 'Meta_train_prob_compare_prob_normal.jpg'))
     else:
         plt.title('NN Meta Training History')
         plt.show()
@@ -275,12 +275,12 @@ start = time.time()
 if prob:
     meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.0005, loss=res_loss, beta_function=beta_function,
                  covariance_function=covariance_function, distance_function=distance_function, save_path=save_path, prob=prob,
-                                n_epochs=2, batch_size=15)
+                                n_epochs=1, batch_size=15)
 else:
     meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.005, loss=tf.keras.losses.MeanSquaredError(),
                                 beta_function=beta_function, covariance_function=covariance_function,
                                 distance_function=distance_function, save_path=save_path, prob=prob,
-                                n_epochs=2, batch_size=15)
+                                n_epochs=1, batch_size=15)
 print('Prob Meta Training:', (time.time() - start)/60, ' mins')
 
 '''
