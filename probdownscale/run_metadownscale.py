@@ -275,7 +275,7 @@ start = time.time()
 if prob:
     meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.0005, loss=res_loss, beta_function=beta_function,
                  covariance_function=covariance_function, distance_function=distance_function, save_path=save_path, prob=prob,
-                                n_epochs=1, batch_size=15)
+                                n_epochs=1, batch_size=10)
 else:
     meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.005, loss=tf.keras.losses.MeanSquaredError(),
                                 beta_function=beta_function, covariance_function=covariance_function,
