@@ -272,9 +272,15 @@ def meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr, los
 
 print('Now doing prob meta training')
 start = time.time()
-meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.0005, loss=res_loss, beta_function=beta_function,
-             covariance_function=covariance_function, distance_function=distance_function, save_path=save_path, prob=prob,
-                            n_epochs=2, batch_size=15)
+if prob:
+    meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.0005, loss=res_loss, beta_function=beta_function,
+                 covariance_function=covariance_function, distance_function=distance_function, save_path=save_path, prob=prob,
+                                n_epochs=2, batch_size=15)
+else:
+    meta_learner = meta_compare(data, lats_lons, task_dim, test_proportion, n_lag, meta_lr=0.005, loss=tf.keras.losses.MeanSquaredError(),
+                                beta_function=beta_function, covariance_function=covariance_function,
+                                distance_function=distance_function, save_path=save_path, prob=prob,
+                                n_epochs=2, batch_size=15)
 print('Prob Meta Training:', (time.time() - start)/60, ' mins')
 
 '''
