@@ -173,7 +173,7 @@ class run_metadownscale():
             components_distribution=tfd.Independent(tfd.Normal(loc=mus, scale=sigmas), reinterpreted_batch_ndims=2))
         log_likelihood = tf.clip_by_value(gm.log_prob(tf.cast(y, tf.float32)), clip_value_min=-10000,
                                           clip_value_max=0)
-        return -tf.reduce_mean(tf.boolean_mask(log_likelihood, tf.math.is_nan(log_likelihood)))
+        return -tf.experimental.numpy.nanmean(log_likelihood)
 
     def meta_train(self, epochs, batch_size, meta_lr, prob):
 
