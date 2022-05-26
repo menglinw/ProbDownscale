@@ -166,7 +166,7 @@ class MetaSGD:
                         best_weights = self.meta_model.get_weights()
                     print('Epoch:', i+1, '/', epochs, 'Bootstrap training step:', step+1, '/', bootstrap_step, 'loss: ',
                           loss, 'val loss: ', val_loss)
-            self.meta_model.set_weights(best_weights)
+        self.meta_model.set_weights(best_weights)
         return self.history, self.val_history, self.beta_history
 
     def save_meta_weights(self, weights_path):
