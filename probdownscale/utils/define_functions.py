@@ -253,7 +253,7 @@ class run_metadownscale():
 
     def downscale(self, epochs, prob_use_meta=False, reg_use_meta=False):
         # define prob meta SGD
-        meta_model_prob = self.model_generator(self.components, self.n_lag, self.task_dim, prob=True)
+        meta_model_prob = self._model_generator(prob=True)
 
         taskextractor = TaskExtractor(self.data, self.lats_lons, self.task_dim, self.test_proportion, self.n_lag)
 
@@ -267,7 +267,7 @@ class run_metadownscale():
         # meta_learner.load_meta_weights('../../Result/meta_weights_wob_prob')
 
         # Define reg meta SGD
-        meta_model_reg = self.model_generator(self.components, self.n_lag, self.task_dim, prob=False)
+        meta_model_reg = self._model_generator(prob=False)
 
         meta_learner_reg = MetaSGD(meta_model_reg, tf.keras.losses.MeanAbsoluteError(), meta_optimizer, inner_step,
                                    inner_optimizer,
