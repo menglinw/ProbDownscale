@@ -251,8 +251,62 @@ class run_metadownscale():
             plt.show()
             plt.savefig(os.path.join(self.save_path, 'Meta_train_compare.jpg'))
 
-    def downscale(self):
-        pass
+    def downscale(self, epochs, prob_use_meta=False, reg_use_meta=False):
+        # define prob meta SGD
+        meta_model_prob = self.model_generator(self.components, self.n_lag, self.task_dim, prob=True)
+
+        taskextractor = TaskExtractor(self.data, self.lats_lons, self.task_dim, self.test_proportion, self.n_lag)
+
+        # define meta learner
+        meta_optimizer = tf.keras.optimizers.Adam(0.001)
+        inner_step = 1
+        inner_optimizer = tf.keras.optimizers.Adam(0.001)
+
+        meta_learner_prob = MetaSGD(meta_model_prob, self.res_loss, meta_optimizer, inner_step, inner_optimizer,
+                                    taskextractor, meta_lr=0.001)
+        # meta_learner.load_meta_weights('../../Result/meta_weights_wob_prob')
+
+        # Define reg meta SGD
+        meta_model_reg = self.model_generator(self.components, self.n_lag, self.task_dim, prob=False)
+
+        meta_learner_reg = MetaSGD(meta_model_reg, tf.keras.losses.MeanAbsoluteError(), meta_optimizer, inner_step,
+                                   inner_optimizer,
+                                   taskextractor, meta_lr=0.001)
+
+        if prob_use_meta:
+            meta_learner_prob.load_meta_weights(os.path.join(self.save_path, "meta_weights_prob"))
+        if reg_use_meta:
+            meta_model_reg.load_meta_weights(os.path.join(self.save_path, "meta_weights"))
+
+        downscaler = Downscaler(meta_learner_prob, meta_learner_reg, self.components, self.test_m_data)
+
+        # define prob call backs
+        optimizer = tf.keras.optimizers.Adam()
+
+        def scheduler_reg(epoch, lr):
+            if epoch <= 20:
+                return 0.005
+            else:
+                return 0.0001
+
+        def scheduler_prob(epoch, lr):
+            if epoch <= 10:
+                return 0.0005
+            elif epoch <= 20 and epoch > 10:
+                return 0.00005
+            else:
+                return 0.00001
+
+        lr_scheduler_prob = tf.keras.callbacks.LearningRateScheduler(scheduler_prob)
+        lr_scheduler_reg = tf.keras.callbacks.LearningRateScheduler(scheduler_reg)
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
+        callbacks_prob = [lr_scheduler_prob, early_stopping]
+        callbacks_reg = [lr_scheduler_reg, early_stopping]
+
+        start = time.time()
+        downscaled_data = downscaler.downscale(epochs, optimizer, callbacks_prob=callbacks_prob, callbacks_reg=callbacks_reg)
+        np.save(os.path.join(self.save_path, 'downscaled_data'), downscaled_data)
+        print('Prob Downscale Time:', (time.time() - start) / 60, 'mins')
 
 
 
