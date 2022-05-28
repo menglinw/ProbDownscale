@@ -75,6 +75,9 @@ class Downscaler():
         else:
             self.meta_model.fit(train_x, train_y, epochs=epochs, validation_split=0.2)
 
+        if not prob:
+            #print('using last model')
+            self.meta_weights = self.meta_model.get_weights()
         # predict several steps
         pred = self.sequential_predict(self.meta_model, init, l_data, self.l_data.shape[0], prob=prob)
         return pred
@@ -117,11 +120,11 @@ class Downscaler():
 
                 Yhat = MDN_Yhat.sample().numpy()
                 Yhat = Yhat
-                Yhat = np.expand_dims(Yhat, [0, -1])
+
             else:
                 Yhat = y_hat
 
-
+            Yhat = np.expand_dims(Yhat, [0, -1])
             #print('init_1:', init_1.shape)
             #print('Y hat:', Yhat.shape)
             init_1 = np.concatenate([init_1, Yhat], axis=1)

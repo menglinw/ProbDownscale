@@ -192,7 +192,7 @@ class run_metadownscale():
             self.meta_learner = MetaSGD(meta_model, self.res_loss, meta_optimizer, inner_step, inner_optimizer, taskextractor,
                                    meta_lr=meta_lr)
         else:
-            self.meta_learner = MetaSGD(meta_model, tf.keras.losses.MeanAbsolutePercentageError(), meta_optimizer,
+            self.meta_learner = MetaSGD(meta_model, tf.keras.losses.MeanAbsoluteError(), meta_optimizer,
                                    inner_step, inner_optimizer, taskextractor, meta_lr=meta_lr)
         start = time.time()
         # meta train with beta
