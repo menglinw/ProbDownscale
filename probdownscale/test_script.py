@@ -22,5 +22,5 @@ else:
     prob = False
 
 meta_downscaler = run_metadownscale(task_dim, test_proportion, n_lag, components, save_path, target_var)
-#meta_downscaler.meta_train(3, 10, 0.005, prob)
-meta_downscaler.downscale(50)
+meta_downscaler.meta_train(3, 10, 0.01, prob)
+#meta_downscaler.downscale(50)
