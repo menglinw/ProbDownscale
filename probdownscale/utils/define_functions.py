@@ -222,8 +222,8 @@ class run_metadownscale():
         start = time.time()
         # meta train with beta
         # define beta function
-        def covariance_function(h, phi=10):
-            return exp(-h / phi)
+        def covariance_function(h, phi=0.8):
+            return exp(-(h / phi)**2)
 
         def distance_function(loc1, loc2):
             return sqrt((loc1[0] - loc2[0]) ** 2 + (loc1[1] - loc2[1]) ** 2)
