@@ -14,13 +14,15 @@ n_lag = 30
 components=50
 
 # save path
+# .py save_path data_part prob
 save_path = sys.argv[1]
-target_var = sys.argv[2]
+target_var = 'TOTEXTTAU'
+data_part = sys.argv[2]
 if sys.argv[3] == 'prob':
     prob = True
 else:
     prob = False
 
 meta_downscaler = run_metadownscale(task_dim, test_proportion, n_lag, components, save_path, target_var)
-meta_downscaler.meta_train(4, 10, 0.005, prob)
-#meta_downscaler.downscale(50)
+meta_downscaler.meta_train(1, 10, 0.005, prob)
+meta_downscaler.downscale(50)

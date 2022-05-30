@@ -21,7 +21,7 @@ import pandas as pd
 
 
 class run_metadownscale():
-    def __init__(self, task_dim, test_proportion, n_lag, components, save_path, target_var):
+    def __init__(self, task_dim, test_proportion, n_lag, components, save_path, target_var, data_part):
         # task dimension 3*3
         self.task_dim = task_dim
 
@@ -39,6 +39,9 @@ class run_metadownscale():
 
         # target variable
         self.target_var = target_var
+
+        # data part
+        self.data_part = int(data_part)
 
         # load data
         self.data, self.lats_lons, self.test_g_data, self.test_m_data = self._load_data()
@@ -95,6 +98,28 @@ class run_metadownscale():
         G_lats = G_lats[latmin_ind - 1:latmax_ind + 1]
         G_lons = G_lons[lonmin_ind:lonmax_ind + 2]
 
+        # take part of the data
+        if self.data_part == 1:
+            g_data = g_data[:, :63, :102]
+            G_lats = G_lats[:63]
+            G_lons = G_lons[:102]
+        elif self.data_part == 2:
+            g_data = g_data[:, :63, 102:]
+            G_lats = G_lats[:63]
+            G_lons = G_lons[102:]
+        elif self.data_part == 3:
+            g_data = g_data[:, 63:, :102]
+            G_lats = G_lats[63:]
+            G_lons = G_lons[:102]
+        elif self.data_part == 4:
+            g_data = g_data[:, 63:, 102:]
+            G_lats = G_lats[63:]
+            G_lons = G_lons[102:]
+        else:
+            pass
+
+        print('Data part:', self.data_part)
+        print('Data shape:', g_data.shape)
         # split data into traing and test
         train_g_data, test_g_data = g_data[:657], g_data[657:]
         train_m_data, test_m_data = m_data[:657], m_data[657:]
@@ -231,11 +256,11 @@ class run_metadownscale():
 
         # save weights and history
         if prob:
-            self.meta_learner.save_meta_weights(os.path.join(self.save_path, "meta_weights_prob"))
-            np.save(os.path.join(self.save_path, 'meta_history_prob'), np.array(meta_beta_history))
+            self.meta_learner.save_meta_weights(os.path.join(self.save_path, "meta_weights_prob_"+str(self.data_part)))
+            np.save(os.path.join(self.save_path, 'meta_history_prob_'+str(self.data_part)), np.array(meta_beta_history))
         else:
-            self.meta_learner.save_meta_weights(os.path.join(self.save_path, "meta_weights"))
-            np.save(os.path.join(self.save_path, 'meta_history'), np.array(meta_beta_history))
+            self.meta_learner.save_meta_weights(os.path.join(self.save_path, "meta_weights_"+str(self.data_part)))
+            np.save(os.path.join(self.save_path, 'meta_history_'+str(self.data_part)), np.array(meta_beta_history))
 
         # save history plot
         plt.figure()
@@ -245,11 +270,11 @@ class run_metadownscale():
         if prob:
             plt.title('MDN Meta Training History')
             plt.show()
-            plt.savefig(os.path.join(self.save_path, 'Meta_train_prob_compare.jpg'))
+            plt.savefig(os.path.join(self.save_path, 'Meta_train_prob_compare_'+str(self.data_part)+'.jpg'))
         else:
             plt.title('NN Meta Training History')
             plt.show()
-            plt.savefig(os.path.join(self.save_path, 'Meta_train_compare.jpg'))
+            plt.savefig(os.path.join(self.save_path, 'Meta_train_compare_'+str(self.data_part)+'.jpg'))
 
     def downscale(self, epochs, prob_use_meta=False, reg_use_meta=False):
         # define prob meta SGD
@@ -274,9 +299,9 @@ class run_metadownscale():
                                    taskextractor, meta_lr=0.001)
 
         if prob_use_meta:
-            meta_learner_prob.load_meta_weights(os.path.join(self.save_path, "meta_weights_prob"))
+            meta_learner_prob.load_meta_weights(os.path.join(self.save_path, "meta_weights_prob_"+str(self.data_part)))
         if reg_use_meta:
-            meta_model_reg.load_meta_weights(os.path.join(self.save_path, "meta_weights"))
+            meta_model_reg.load_meta_weights(os.path.join(self.save_path, "meta_weights_"+str(self.data_part)))
 
         downscaler = Downscaler(meta_learner_prob, meta_learner_reg, self.components, self.test_m_data)
 
@@ -305,7 +330,7 @@ class run_metadownscale():
 
         start = time.time()
         downscaled_data = downscaler.downscale(epochs, optimizer, callbacks_prob=callbacks_prob, callbacks_reg=callbacks_reg)
-        np.save(os.path.join(self.save_path, 'downscaled_data'), downscaled_data)
+        np.save(os.path.join(self.save_path, 'downscaled_data_'+str(self.data_part)), downscaled_data)
         print('Prob Downscale Time:', (time.time() - start) / 60, 'mins')
 
 
