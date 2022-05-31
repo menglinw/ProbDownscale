@@ -22,5 +22,5 @@ data_part = sys.argv[2]
 
 meta_downscaler = run_metadownscale(task_dim, test_proportion, n_lag, components, save_path, target_var, data_part)
 #meta_downscaler.meta_train(1, 10, 0.005, prob=True)
-meta_downscaler.meta_train(1, 10, 0.01, prob=False)
+meta_downscaler.meta_train(1, 10, 0.05, prob=False)
 #meta_downscaler.downscale(50, prob_use_meta=True, reg_use_meta=True)
