@@ -306,7 +306,7 @@ class run_metadownscale():
         if prob_use_meta:
             meta_learner_prob.load_meta_weights(os.path.join(self.save_path, "meta_weights_prob_"+str(self.data_part)))
         if reg_use_meta:
-            meta_model_reg.load_meta_weights(os.path.join(self.save_path, "meta_weights_"+str(self.data_part)))
+            meta_learner_reg.load_meta_weights(os.path.join(self.save_path, "meta_weights_"+str(self.data_part)))
 
         downscaler = Downscaler(meta_learner_prob, meta_learner_reg, self.components, self.test_m_data)
 
@@ -314,7 +314,7 @@ class run_metadownscale():
         optimizer = tf.keras.optimizers.Adam()
 
         def scheduler_reg(epoch, lr):
-            if epoch <= 20:
+            if epoch <= 10:
                 return 0.005
             else:
                 return 0.0001
