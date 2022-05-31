@@ -157,7 +157,7 @@ class run_metadownscale():
         X3 = layers.BatchNormalization()(X3)
         #X3 = layers.Dropout(0.5)(X3)
 
-        for nodes in [128, 64, 32]:
+        for nodes in [128, 64, 64, 64, 32, 32]:
             X3 = layers.Dense(nodes, kernel_initializer="he_normal", use_bias=True)(X3)
             X3 = layers.LeakyReLU(alpha=0.05)(X3)
             X3 = layers.BatchNormalization()(X3)
