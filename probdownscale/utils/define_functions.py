@@ -173,7 +173,7 @@ class run_metadownscale():
         X4 = layers.BatchNormalization()(X4)
         #X4 = layers.Dropout(0.5)(X4)
 
-        for nodes in [128, 64, 32]:
+        for nodes in [128, 64, 32, 32, 32, 32, 32,32, 32]:
             X4 = layers.Dense(nodes, kernel_initializer="he_normal", use_bias=True)(X4)
             X4 = layers.LeakyReLU(alpha=0.05)(X4)
             X4 = layers.BatchNormalization()(X4)
