@@ -159,6 +159,7 @@ class run_metadownscale():
             X3 = layers.Dense(nodes, kernel_initializer="he_normal", use_bias=True)(X3)
             X3 = layers.LeakyReLU(alpha=0.05)(X3)
             X3 = layers.BatchNormalization()(X3)
+            X3 = layers.Dropout(0.5)(X3)
 
         alphas1 = layers.Dense(self.components, activation="softmax")(X3)
         mus1 = layers.Dense(self.components * self.task_dim * self.task_dim)(X3)
@@ -173,6 +174,7 @@ class run_metadownscale():
             X4 = layers.Dense(nodes, kernel_initializer="he_normal", use_bias=True)(X4)
             X4 = layers.LeakyReLU(alpha=0.05)(X4)
             X4 = layers.BatchNormalization()(X4)
+            X4 = layers.Dropout(0.5)(X4)
 
         output2 = layers.Dense(self.task_dim * self.task_dim, activation='relu')(X4)
         output2 = layers.Reshape((self.task_dim, self.task_dim))(output2)
