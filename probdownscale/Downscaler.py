@@ -25,6 +25,8 @@ class Downscaler():
         self.task_dim = self.task_extractor.task_dim
         self.n_lag = self.task_extractor.n_lag
         self.l_data = l_data
+        self.reg_epochs=[]
+        self.prob_epochs=[]
 
     def _creat_task_l_data(self, topleft_location):
         l_data = np.zeros((self.l_data.shape[0], self.task_dim[0], self.task_dim[1]))
@@ -67,7 +69,8 @@ class Downscaler():
                 downscaled_data[:, lat_index:(lat_index+self.task_dim[0]), lon_index:(lon_index+self.task_dim[1])] = temp
             else:
                 downscaled_data[:, lat_index, lon_index] = temp
-        return downscaled_data
+        epochs_data = np.array([self.prob_epochs, self.reg_epochs])
+        return downscaled_data, epochs_data
 
     def _task_downscaler(self, location, epochs, callbacks_prob=None, callbacks_reg=None):
         train_x, train_y, _, _, location, init = self.task_extractor._get_one_random_task(is_random=False, record=False,
@@ -79,7 +82,10 @@ class Downscaler():
         # the meta_model should be compiled first
         self.meta_model_prob.fit(train_x, train_y, epochs=epochs, validation_split=0.2, callbacks=callbacks_prob)
         self.meta_model_reg.fit(train_x, train_y, epochs=epochs, validation_split=0.2, callbacks=callbacks_reg)
-
+        if callbacks_prob:
+            self.prob_epochs.append(callbacks_prob[1].stopped_epoch)
+        if callbacks_reg:
+            self.reg_epochs.append(callbacks_reg.stopped_epoch)
         # predict several steps
         pred = self.sequential_predict(init, l_data, self.l_data.shape[0])
         return pred
