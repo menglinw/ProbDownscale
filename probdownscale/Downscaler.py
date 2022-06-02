@@ -80,12 +80,12 @@ class Downscaler():
 
         # fine tune the meta model with task data
         # the meta_model should be compiled first
-        self.meta_model_prob.fit(train_x, train_y, epochs=epochs, validation_split=0.2, callbacks=callbacks_prob)
-        self.meta_model_reg.fit(train_x, train_y, epochs=epochs, validation_split=0.2, callbacks=callbacks_reg)
+        self.meta_model_prob.fit(train_x, train_y, epochs=epochs, validation_split=0.3, callbacks=callbacks_prob)
+        self.meta_model_reg.fit(train_x, train_y, epochs=epochs, validation_split=0.3, callbacks=callbacks_reg)
         if callbacks_prob:
             self.prob_epochs.append(callbacks_prob[1].stopped_epoch)
         if callbacks_reg:
-            self.reg_epochs.append(callbacks_reg.stopped_epoch)
+            self.reg_epochs.append(callbacks_reg[1].stopped_epoch)
         # predict several steps
         pred = self.sequential_predict(init, l_data, self.l_data.shape[0])
         return pred
