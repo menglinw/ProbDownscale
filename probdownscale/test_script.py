@@ -25,7 +25,7 @@ else:
 
 use_meta = True if sys.argv[4] == 'meta' else False
 meta_downscaler = run_metadownscale(task_dim, test_proportion, n_lag, components, save_path, target_var, data_part,
-                                    use_beta)
+                                    use_beta, use_meta)
 if use_meta:
     meta_downscaler.meta_train(1, 10, 0.005, prob=True)
     meta_downscaler.meta_train(1, 10, 0.01, prob=False)

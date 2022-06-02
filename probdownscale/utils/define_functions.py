@@ -21,7 +21,8 @@ import pandas as pd
 
 
 class run_metadownscale():
-    def __init__(self, task_dim, test_proportion, n_lag, components, save_path, target_var, data_part, use_beta=True):
+    def __init__(self, task_dim, test_proportion, n_lag, components, save_path, target_var, data_part, use_beta=True,
+                 use_meta=True):
         # task dimension 3*3
         self.task_dim = task_dim
 
@@ -47,6 +48,9 @@ class run_metadownscale():
 
         # use beta function for training
         self.use_beta = use_beta
+
+        # use meta train or not
+        self.use_meta = use_meta
 
         # load data
         self.data, self.lats_lons, self.test_g_data, self.test_m_data = self._load_data()
@@ -333,8 +337,11 @@ class run_metadownscale():
 
         start = time.time()
         downscaled_data, epochs_data = downscaler.downscale(epochs, optimizer, callbacks_prob=callbacks_prob, callbacks_reg=callbacks_reg)
-        np.save(os.path.join(self.save_path, 'downscaled_data_' + str(self.data_part)), downscaled_data)
-        np.save(os.path.join(self.save_path, 'epochs_data_' + str(self.data_part)), epochs_data)
+
+        use_beta = '_beta' if self.use_beta else ''
+        use_meta = '_meta' if self.use_meta else ''
+        np.save(os.path.join(self.save_path, 'downscaled_data_'+str(self.data_part)+use_meta+use_beta), downscaled_data)
+        np.save(os.path.join(self.save_path, 'epochs_data_'+str(self.data_part)+use_meta+use_beta), epochs_data)
         print('Prob Downscale Time:', (time.time() - start) / 60, 'mins')
 
 
