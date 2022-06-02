@@ -1,5 +1,5 @@
 #!/bin/bash
-save_path=/scratch1/menglinw/Results/6_2_results
+save_path=/scratch1/menglinw/Results/6_2_results_batch
 cur_path=`pwd`
 
 for meta in meta nonmeta
@@ -15,8 +15,9 @@ do
         cp batch_run.sh $save_path/$meta/$lat$lon
         cd $save_path/$meta/$lat$lon
         echo "
-        python3 /scratch1/menglinw/ProbDownscale/probdownscale/test_script.py ${save_path} ${lat}${lon} nonbeta ${meta}">>batch_run.sh
+python3 /scratch1/menglinw/ProbDownscale/probdownscale/test_script.py ${save_path} ${lat}${lon} nonbeta ${meta}">>batch_run.sh
         echo "${save_path} ${lat}${lon} nonbeta ${meta}"
+        sbatch batch_run.sh
         cd $cur_path
       done
     done
@@ -32,8 +33,9 @@ do
           cp batch_run.sh $save_path/$meta/$beta/$lat$lon
           cd $save_path/$meta/$beta/$lat$lon
           echo "
-          python3 /scratch1/menglinw/ProbDownscale/probdownscale/test_script.py ${save_path} ${lat}${lon} ${beta} ${meta}">>batch_run.sh
+python3 /scratch1/menglinw/ProbDownscale/probdownscale/test_script.py ${save_path} ${lat}${lon} ${beta} ${meta}">>batch_run.sh
           echo "${save_path} ${lat}${lon} ${beta} ${meta}"
+          sbatch batch_run.sh
           cd $cur_path
         done
       done
