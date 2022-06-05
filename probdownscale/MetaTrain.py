@@ -143,7 +143,7 @@ class MetaSGD:
         for i in range(epochs):
             if randomize:
                 all_tasks = sample(all_tasks, len(all_tasks))
-            #print(len(all_tasks))
+            print(len(all_tasks))
             if basic_train:
                 for step in range((len(all_tasks)//batch_size)):
                     locations = all_tasks[step*batch_size:(step+1)*batch_size]
