@@ -152,10 +152,8 @@ class TaskExtractor():
 
     def get_grid_locations(self):
         # all available topleft index of tasks
-        avlb_lats = self.h_lats[:len(self.h_lats)-(self.task_dim[0]-1)]
-        avlb_lons = self.h_lons[:len(self.h_lons)-(self.task_dim[1]-1)]
-        avlb_lats = [avlb_lats[i*self.task_dim[0]] for i in range(int(len(avlb_lats)/self.task_dim[0]))]
-        avlb_lons = [avlb_lons[i*self.task_dim[1]] for i in range(int(len(avlb_lons)/self.task_dim[1]))]
+        avlb_lats = [self.h_lats[i*self.task_dim[0]] for i in range(int(len(self.h_lats)/self.task_dim[0]))]
+        avlb_lons = [self.h_lons[i*self.task_dim[1]] for i in range(int(len(self.h_lons)/self.task_dim[1]))]
         return list(product(avlb_lats, avlb_lons))
 
 
