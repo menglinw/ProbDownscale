@@ -261,16 +261,20 @@ class run_metadownscale():
                                                       randomize=True)
         print('Meta Training:', (time.time() - start) / 60, ' mins')
 
-        # save weights and history
-        if prob:
-            self.meta_learner.save_meta_weights(os.path.join(self.save_path, "meta_weights_prob_" + str(self.data_part)))
-            np.save(os.path.join(self.save_path, 'meta_history_prob_' + str(self.data_part)), np.array(meta_beta_history))
-        else:
-            self.meta_learner.save_meta_weights(os.path.join(self.save_path, "meta_weights_" + str(self.data_part)))
-            np.save(os.path.join(self.save_path, 'meta_history_' + str(self.data_part)), np.array(meta_beta_history))
-
         use_beta = '_beta' if self.use_beta else ''
         use_meta = '_meta' if self.use_meta else ''
+
+        # save weights and history
+        if prob:
+            self.meta_learner.save_meta_weights(os.path.join(self.save_path, "meta_weights_prob_" + str(self.data_part)+use_meta+use_beta))
+            np.save(os.path.join(self.save_path, 'meta_history_prob_' + str(self.data_part) +use_meta+use_beta),
+                    np.array(meta_beta_history))
+        else:
+            self.meta_learner.save_meta_weights(os.path.join(self.save_path, "meta_weights_" + str(self.data_part)+use_meta+use_beta))
+            np.save(os.path.join(self.save_path, 'meta_history_' + str(self.data_part)+use_meta+use_beta),
+                    np.array(meta_beta_history))
+
+
         # save history plot
         plt.figure()
         plt.plot(meta_beta_history[0], "-r", label="with beta loss")
@@ -307,10 +311,12 @@ class run_metadownscale():
                                    inner_optimizer,
                                    taskextractor, meta_lr=0.001)
 
+        use_beta = '_beta' if self.use_beta else ''
+        use_meta = '_meta' if self.use_meta else ''
         if prob_use_meta:
-            meta_learner_prob.load_meta_weights(os.path.join(self.save_path, "meta_weights_prob_" + str(self.data_part)))
+            meta_learner_prob.load_meta_weights(os.path.join(self.save_path, "meta_weights_prob_"+str(self.data_part)+use_meta+use_beta))
         if reg_use_meta:
-            meta_learner_reg.load_meta_weights(os.path.join(self.save_path, "meta_weights_" + str(self.data_part)))
+            meta_learner_reg.load_meta_weights(os.path.join(self.save_path, "meta_weights_" + str(self.data_part)+use_meta+use_beta))
 
         downscaler = Downscaler(meta_learner_prob, meta_learner_reg, self.components, self.test_m_data)
 
