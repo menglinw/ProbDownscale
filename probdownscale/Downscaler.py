@@ -133,7 +133,7 @@ class Downscaler():
             Yhat_reg = y_hat
 
             # combine
-            Yhat = (Yhat_prob + Yhat_reg)/2
+            Yhat = np.nanmean([Yhat_prob, Yhat_reg], axis=0)
             Yhat = np.expand_dims(Yhat, [0, -1])
             #print('init_1:', init_1.shape)
             #print('Y hat:', Yhat.shape)
