@@ -324,18 +324,18 @@ class run_metadownscale():
         optimizer = tf.keras.optimizers.Adam()
 
         def scheduler_reg(epoch, lr):
-            if epoch <= 10:
-                return 0.005
-            else:
+            if epoch <= 20:
                 return 0.0001
+            else:
+                return 0.00001
 
         def scheduler_prob(epoch, lr):
             if epoch <= 10:
                 return 0.0001
             elif epoch <= 20 and epoch > 10:
-                return 0.00005
-            else:
                 return 0.00001
+            else:
+                return 0.000001
 
         lr_scheduler_prob = tf.keras.callbacks.LearningRateScheduler(scheduler_prob)
         lr_scheduler_reg = tf.keras.callbacks.LearningRateScheduler(scheduler_reg)
