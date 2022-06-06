@@ -1,5 +1,5 @@
 #!/bin/bash
-save_path=/scratch1/menglinw/Results/6_3_results
+save_path=/scratch1/menglinw/Results/6_3_results_nanmean
 cur_path=`pwd`
 
 for meta in meta nonmeta
