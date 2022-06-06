@@ -269,6 +269,8 @@ class run_metadownscale():
             self.meta_learner.save_meta_weights(os.path.join(self.save_path, "meta_weights_" + str(self.data_part)))
             np.save(os.path.join(self.save_path, 'meta_history_' + str(self.data_part)), np.array(meta_beta_history))
 
+        use_beta = '_beta' if self.use_beta else ''
+        use_meta = '_meta' if self.use_meta else ''
         # save history plot
         plt.figure()
         plt.plot(meta_beta_history[0], "-r", label="with beta loss")
@@ -277,11 +279,11 @@ class run_metadownscale():
         if prob:
             plt.title('MDN Meta Training History')
             plt.show()
-            plt.savefig(os.path.join(self.save_path, 'Meta_train_prob_compare_' + str(self.data_part) + '.jpg'))
+            plt.savefig(os.path.join(self.save_path, 'Meta_train_prob_compare_'+str(self.data_part)+use_meta+use_beta+'.jpg'))
         else:
             plt.title('NN Meta Training History')
             plt.show()
-            plt.savefig(os.path.join(self.save_path, 'Meta_train_compare_' + str(self.data_part) + '.jpg'))
+            plt.savefig(os.path.join(self.save_path, 'Meta_train_compare_'+str(self.data_part)+use_meta+use_beta+'.jpg'))
 
     def downscale(self, epochs, prob_use_meta=False, reg_use_meta=False):
         # define prob meta SGD

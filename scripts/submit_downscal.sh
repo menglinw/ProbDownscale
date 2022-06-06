@@ -1,5 +1,5 @@
 #!/bin/bash
-save_path=/scratch1/menglinw/Results/6_2_results_cpu
+save_path=/scratch1/menglinw/Results/6_3_results
 cur_path=`pwd`
 
 for meta in meta nonmeta
