@@ -159,8 +159,8 @@ class evaluate_data():
     def evaluate_epochs(self, e_data, fig_name):
         print('epochs data shape:', e_data.shape)
         plt.figure()
-        plt.hist(e_data[0], alpha=0.5, label='prob', color='blue')
-        plt.hist(e_data[1], alpha=0.5, label='reg', color='red')
+        plt.hist(e_data[0], alpha=0.2, label='prob', color='blue')
+        plt.hist(e_data[1], alpha=0.2, label='reg', color='red')
         plt.legend()
         plt.show()
         plt.savefig(os.path.join(self.save_path, fig_name))
