@@ -138,11 +138,11 @@ class run_metadownscale():
         input3 = layers.Input(shape=(1,), dtype='float32')
         input3 = layers.BatchNormalization()(input3)
 
-        X = layers.ConvLSTM2D(filters=50, kernel_size=(2, 2), activation=layers.LeakyReLU(), padding='same',
+        X = layers.ConvLSTM2D(filters=100, kernel_size=(2, 2), activation=layers.LeakyReLU(), padding='same',
                               return_sequences=True)(input1)
-        X = layers.ConvLSTM2D(filters=50, kernel_size=(2, 2), activation=layers.LeakyReLU(), padding='same',
+        X = layers.ConvLSTM2D(filters=100, kernel_size=(2, 2), activation=layers.LeakyReLU(), padding='same',
                               return_sequences=True)(X)
-        X = layers.ConvLSTM2D(filters=50, kernel_size=(2, 2), activation=layers.LeakyReLU())(X)
+        X = layers.ConvLSTM2D(filters=100, kernel_size=(2, 2), activation=layers.LeakyReLU())(X)
         X = layers.Flatten()(X)
 
         X1 = layers.Conv2D(20, (2, 2), activation='relu')(input2)
@@ -155,7 +155,7 @@ class run_metadownscale():
         X3 = layers.BatchNormalization()(X3)
         #X3 = layers.Dropout(0.5)(X3)
 
-        for nodes in [128, 64, 64, 64, 32, 32]:
+        for nodes in [128, 256, 128, 128, 128, 128, 128]:
             X3 = layers.Dense(nodes, kernel_initializer="he_normal", use_bias=True)(X3)
             X3 = layers.LeakyReLU(alpha=0.05)(X3)
             X3 = layers.BatchNormalization()(X3)
@@ -171,7 +171,7 @@ class run_metadownscale():
         X4 = layers.BatchNormalization()(X4)
         #X4 = layers.Dropout(0.5)(X4)
 
-        for nodes in [128, 64, 32, 32, 32, 32, 32,32, 32]:
+        for nodes in [128, 256, 128, 128, 128, 128, 128, 64, 64, 64, 64]:
             X4 = layers.Dense(nodes, kernel_initializer="he_normal", use_bias=True)(X4)
             X4 = layers.LeakyReLU(alpha=0.05)(X4)
             X4 = layers.BatchNormalization()(X4)

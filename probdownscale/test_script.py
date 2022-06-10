@@ -29,6 +29,7 @@ meta_downscaler = run_metadownscale(task_dim, test_proportion, n_lag, components
 if use_meta:
     meta_downscaler.meta_train(5, 5, 0.0005, prob=True)
     meta_downscaler.meta_train(5, 5, 0.001, prob=False)
-    meta_downscaler.downscale(50, prob_use_meta=True, reg_use_meta=True)
+    #meta_downscaler.downscale(50, prob_use_meta=True, reg_use_meta=True)
 else:
-    meta_downscaler.downscale(50, prob_use_meta=False, reg_use_meta=False)
+    pass
+    #meta_downscaler.downscale(50, prob_use_meta=False, reg_use_meta=False)
