@@ -144,13 +144,24 @@ class evaluate_data():
         plt.legend()
         plt.show()
         plt.savefig(os.path.join(self.save_path, fig_name))
+        plt.close()
+
+        plt.figure()
+        plt.hist(d_data.reshape(np.prod(d_data.shape)), bins=100, alpha=0.5, label='prob')
+        plt.hist(t_data.reshape(np.prod(t_data.shape)), bins=100, alpha=0.5, label='reg')
+        plt.legend()
+        plt.show()
+        plt.savefig(os.path.join(self.save_path, 'distribut_'+fig_name))
+        plt.close()
 
     def evaluate_epochs(self, e_data, fig_name):
+        plt.figure()
         plt.hist(e_data[0], bins=100, alpha=0.5, label='prob')
         plt.hist(e_data[1], bins=100, alpha=0.5, label='reg')
         plt.legend()
         plt.show()
         plt.savefig(os.path.join(self.save_path, fig_name))
+        plt.close()
 
 if __name__ == '__main__':
     save_path = sys.argv[1]
