@@ -13,6 +13,7 @@ import pandas as pd
 class evaluate_data():
     def __init__(self, save_path):
         self.save_path = save_path
+        self.target_var = 'TOTEXTTAU'
         self.lats_lons, self.test_g_data, self.test_m_data = self._load_data()
         self.d_data, self.d_data_meta, self.d_data_meta_beta = self.read_downscale_data()
         self.e_data, self.e_data_meta, self.e_data_meta_beta = self.read_epochs_data()
