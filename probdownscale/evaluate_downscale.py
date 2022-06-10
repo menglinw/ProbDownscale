@@ -147,8 +147,8 @@ class evaluate_data():
         plt.close()
 
         plt.figure()
-        plt.hist(d_data.reshape(np.prod(d_data.shape)), bins=100, alpha=0.5, label='prob')
-        plt.hist(t_data.reshape(np.prod(t_data.shape)), bins=100, alpha=0.5, label='reg')
+        plt.hist(d_data.reshape((1, np.prod(d_data.shape))), bins=100, alpha=0.5, label='downscaled')
+        plt.hist(t_data.reshape((1, np.prod(t_data.shape))), bins=100, alpha=0.5, label='true')
         plt.legend()
         plt.show()
         plt.savefig(os.path.join(self.save_path, 'distribut_'+fig_name))
