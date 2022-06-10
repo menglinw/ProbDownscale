@@ -136,6 +136,7 @@ class evaluate_data():
 
     def evaluate_downscale(self, d_data, t_data, fig_name, title):
         print('Missing Rate:', np.mean(np.isnan(d_data)))
+        print('Finit Rate:', np.mean(np.isfinite(d_data)))
         rmse_list, r2_list = self._image_evaluate(d_data, t_data)
         plt.figure()
         #plt.plot(rmse_list/100, "-b",label='RMSE')
@@ -145,7 +146,7 @@ class evaluate_data():
         plt.show()
         plt.savefig(os.path.join(self.save_path, fig_name))
         plt.close()
-
+        '''
         plt.figure()
         plt.hist(d_data.reshape(np.prod(d_data.shape)), alpha=0.5, label='downscaled')
         plt.hist(t_data.reshape(np.prod(t_data.shape)), alpha=0.5, label='true')
@@ -153,6 +154,7 @@ class evaluate_data():
         plt.show()
         plt.savefig(os.path.join(self.save_path, 'distribut_'+fig_name))
         plt.close()
+        '''
 
     def evaluate_epochs(self, e_data, fig_name):
         plt.figure()
