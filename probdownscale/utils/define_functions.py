@@ -214,7 +214,7 @@ class run_metadownscale():
 
         # define meta learner
         meta_optimizer = tf.keras.optimizers.Adam(meta_lr)
-        inner_step = 1
+        inner_step = 3
         inner_optimizer = tf.keras.optimizers.Adam(meta_lr)
         if prob:
             self.meta_learner = MetaSGD(meta_model, self.res_loss, meta_optimizer, inner_step, inner_optimizer, taskextractor,
